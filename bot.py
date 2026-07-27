@@ -40,9 +40,12 @@ def start_command(message):
             reply_markup=sub_keyboard()
         )
 
+# الاستجابة لزر التحقق من الاشتراك
 @bot.callback_query_handler(func=lambda call: call.data == "check_subscription")
 def callback_check(call):
     user_id = call.from_user.id
+    
+    # إنهاء حالة التحميل بالزر فوراً حتى لا تبقى الدائرة تدور
     if check_sub(user_id):
         bot.answer_callback_query(call.id, "✅ شكراً لاشتراكك! يمكنك الآن استخدام البوت.", show_alert=True)
         try:
@@ -59,6 +62,7 @@ def callback_check(call):
 @bot.message_handler(func=lambda message: True)
 def download_video(message):
     user_id = message.from_user.id
+    
     if not check_sub(user_id):
         bot.send_message(
             message.chat.id,
