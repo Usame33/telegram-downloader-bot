@@ -6,7 +6,8 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import yt_dlp
 
 # --- 1. إعدادات التليجرام والمصادر ---
-TOKEN = os.environ.get("TOKEN")
+# تم وضع التوكين مباشرة لتفادي خطأ NoneType
+TOKEN = "8629100412:AAFbCinwIOHvhSwvReg2l67-K9dqUgHpyjM"
 CHANNEL = "@wanasatt"
 CHANNEL_LINK = "https://t.me/wanasatt"
 BOT_LINK = "https://t.me/Ussame_bot"
@@ -145,19 +146,17 @@ def process_video_request(message):
     except Exception as e:
         bot.reply_to(message, f"❌ حدث خطأ أثناء التحميل: {e}")
 
-# --- 6. تشغيل البوت في الخلفية واستدقاء Flask في الواجهة ---
-def start_telegram_bot():
-    bot.infinity_polling(non_stop=True)
-
-# تشغيل البوت في Thread منفصل
-threading.Thread(target=start_telegram_bot, daemon=True).start()
-
-# تشغيل Flask لتلبية متطلبات Render
+# --- 6. تشغيل Flask والـ Bot معاً ---
 app = Flask(__name__)
 
 @app.route('/')
 def home():
     return "Bot is running 24/7!"
+
+def run_bot():
+    bot.infinity_polling(non_stop=True)
+
+threading.Thread(target=run_bot, daemon=True).start()
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
