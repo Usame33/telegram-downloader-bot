@@ -6,7 +6,7 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import yt_dlp
 
 # --- 1. إعدادات التليجرام والمصادر ---
-TOKEN = "8629100412:AAFbCinwIOHvhSwvReg2l67-K9dqUgHpyjM"
+TOKEN = "8629100412:AAFuygQySRW96QjFnv_ALwMfWZjhpGUUygg"
 CHANNEL = "@wanasatt"
 CHANNEL_LINK = "https://t.me/wanasatt"
 BOT_LINK = "https://t.me/Ussame_bot"
