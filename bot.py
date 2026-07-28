@@ -6,7 +6,7 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import yt_dlp
 
 # --- 1. إعدادات التليجرام والمصادر ---
-TOKEN = "8629100412:AAFwLwGApr1gJuY9DaYs6U87axvBgiY7diw"
+TOKEN = "8629100412:AAFbCinwIOHvhSwvReg2l67-K9dqUgHpyjM"
 CHANNEL = "@wanasatt"
 CHANNEL_LINK = "https://t.me/wanasatt"
 BOT_LINK = "https://t.me/Ussame_bot"
@@ -69,8 +69,7 @@ def stats_cmd(message):
             
     bot.reply_to(
         message, 
-        f"📊 **إحصائيات البوت الحالية:**\n\n👥 إجمالي عدد المستخدمين: `{total_users}`", 
-        parse_mode="Markdown"
+        f"📊 إحصائيات البوت الحالية:\n\n👥 إجمالي عدد المستخدمين: {total_users}"
     )
 
 @bot.callback_query_handler(func=lambda call: call.data == "check_sub")
@@ -122,7 +121,7 @@ def process_video_request(message):
             uploader = info.get('uploader', 'غير معروف')
 
         caption = (
-            f"🎬 **{title}**\n"
+            f"🎬 {title}\n"
             f"👤 الناشر: {uploader}\n\n"
             f"📢 القناة: {CHANNEL_LINK}\n"
             f"🫆 البوت: {BOT_LINK}"
@@ -132,8 +131,7 @@ def process_video_request(message):
             bot.send_video(
                 message.chat.id, 
                 video, 
-                caption=caption, 
-                parse_mode="Markdown",
+                caption=caption,
                 reply_to_message_id=message.message_id
             )
 
