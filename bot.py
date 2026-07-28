@@ -1,7 +1,11 @@
-from flask import Flask
-import threading
 import os
+import threading
+from flask import Flask
+import telebot
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+import yt_dlp
 
+# --- 1. إعداد تطبيق Flask لإبقاء السيرفر حياً ---
 app = Flask(__name__)
 
 @app.route('/')
@@ -13,18 +17,28 @@ def run_flask():
     app.run(host='0.0.0.0', port=port)
 
 threading.Thread(target=run_flask).start()
-import os
-import telebot
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
-import yt_dlp
 
-TOKEN = "8629100412:AAEKxaU6hzhJQ5kMavdJqOK2YUNyy_bQT1k"
-
+# --- 2. إعدادات التليجرام والمصادر ---
+TOKEN = os.environ.get("TOKEN")
 CHANNEL = "@wanasatt"
 CHANNEL_LINK = "https://t.me/wanasatt"
+BOT_LINK = "https://t.me/Ussame_bot"
 
 bot = telebot.TeleBot(TOKEN)
 
+# --- 3. إدارة الإحصائيات والمستخدمين ---
+def update_users(user_id):
+    users_file = "users.txt"
+    users = set()
+    if os.path.exists(users_file):
+        with open(users_file, "r") as f:
+            users = set(f.read().splitlines())
+    
+    users.add(str(user_id))
+    with open(users_file, "w") as f:
+        f.write("\n".join(users))
+
+# --- 4. التحقق من الاشتراك الإجباري ---
 def check_sub(user_id):
     try:
         member = bot.get_chat_member(CHANNEL, user_id)
@@ -38,51 +52,62 @@ def check_sub(user_id):
 def sub_keyboard():
     markup = InlineKeyboardMarkup()
     btn_link = InlineKeyboardButton("📢 اشترك في القناة أولاً", url=CHANNEL_LINK)
-    btn_check = InlineKeyboardButton("✅ تحقق من الاشتراك", callback_data="check_subscription")
+    btn_check = InlineKeyboardButton("🫆 تأكيد الاشتراك", callback_data="check_sub")
     markup.add(btn_link)
     markup.add(btn_check)
     return markup
 
+# --- 5. أوامر البوت (/start و /stats) ---
 @bot.message_handler(commands=['start'])
-def start_command(message):
-    user_id = message.from_user.id
-    if check_sub(user_id):
-        bot.reply_to(message, "🎬 أهلاً بك! أرسل لي رابط الفيديو من (تيك توك، إنستغرام، يوتيوب...) وسأقوم بتحميله لك فوراً.")
-    else:
+def start_cmd(message):
+    update_users(message.from_user.id)
+    
+    if not check_sub(message.from_user.id):
         bot.send_message(
-            message.chat.id,
-            "⚠️ عذراً عزيزي، يجب عليك الاشتراك في القناة أولاً لاستخدام البوت:\n\n"
-            "اشترك ثم اضغط على زر (تحقق من الاشتراك) بالأسفل.",
+            message.chat.id, 
+            "⚠️ عذراً، يجب عليك الاشتراك في القناة لاستخدام البوت:", 
             reply_markup=sub_keyboard()
         )
+        return
 
-# الاستجابة لزر التحقق من الاشتراك
-@bot.callback_query_handler(func=lambda call: call.data == "check_subscription")
-def callback_check(call):
-    user_id = call.from_user.id
-    
-    # إنهاء حالة التحميل بالزر فوراً حتى لا تبقى الدائرة تدور
-    if check_sub(user_id):
-        bot.answer_callback_query(call.id, "✅ شكراً لاشتراكك! يمكنك الآن استخدام البوت.", show_alert=True)
-        try:
-            bot.edit_message_text(
-                "✅ تم التحقق من الاشتراك بنجاح!\n\n🎬 أرسل لي الآن رابط الفيديو الذي تريد تحميله.",
-                call.message.chat.id,
-                call.message.message_id
-            )
-        except Exception:
-            pass
+    bot.reply_to(message, "مرحباً بك! أرسل لي رابط الفيديو الذي تريد تحميله 🚀")
+
+@bot.message_handler(commands=['stats'])
+def stats_cmd(message):
+    users_file = "users.txt"
+    total_users = 0
+    if os.path.exists(users_file):
+        with open(users_file, "r") as f:
+            total_users = len(f.read().splitlines())
+            
+    bot.reply_to(
+        message, 
+        f"📊 **إحصائيات البوت الحالية:**\n\n👥 إجمالي عدد المستخدمين: `{total_users}`", 
+        parse_mode="Markdown"
+    )
+
+@bot.callback_query_handler(func=lambda call: call.data == "check_sub")
+def check_sub_callback(call):
+    if check_sub(call.from_user.id):
+        bot.answer_callback_query(call.id, "🫆 تم التحقق بنجاح! شكراً لاشتراكك")
+        bot.send_message(call.message.chat.id, "أرسل لي الآن رابط الفيديو الذي تريد تحميله.")
     else:
-        bot.answer_callback_query(call.id, "❌ لم تشترك في القناة بعد! يرجى الانضمام للقناة أولاً ثم المحاولة.", show_alert=True)
+        bot.answer_callback_query(call.id, "❌ لم تشترك في القناة بعد!", show_alert=True)
+
+# --- 6. معالجة الروابط والتحميل ---
+def download_hook(d):
+    if d['status'] == 'downloading':
+        percent = d.get('_percent_str', '0%').strip()
+        print(f"جاري التحميل: {percent}")
 
 @bot.message_handler(func=lambda message: True)
-def download_video(message):
-    user_id = message.from_user.id
+def process_video_request(message):
+    update_users(message.from_user.id)
     
-    if not check_sub(user_id):
+    if not check_sub(message.from_user.id):
         bot.send_message(
-            message.chat.id,
-            "⚠️ لا يمكنك التحميل حتى تشترك في القناة أولاً!",
+            message.chat.id, 
+            "⚠️ يجب عليك الاشتراك في القناة أولاً لتتمكن من التحميل:", 
             reply_markup=sub_keyboard()
         )
         return
@@ -92,29 +117,49 @@ def download_video(message):
         bot.reply_to(message, "❌ يرجى إرسال رابط فيديو صحيح.")
         return
 
-    msg = bot.reply_to(message, "⏳ جاري تحميل الفيديو، انتظر قليلاً...")
+    msg = bot.reply_to(message, "⏳ جاري جلب المعلومات وتحميل الفيديو...")
 
     ydl_opts = {
         'format': 'best[ext=mp4]/best',
-        'outtmpl': f'video_{user_id}.%(ext)s',
+        'outtmpl': f'video_{message.from_user.id}.%(ext)s',
         'quiet': True,
         'no_warnings': True,
+        'progress_hooks': [download_hook],
     }
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             filename = ydl.prepare_filename(info)
+            title = info.get('title', 'فيديو بدون عنوان')
+            uploader = info.get('uploader', 'غير معروف')
 
+        # تجهيز الحقوق والمعلومات مع إيقونة البصمة 🫆
+        caption = (
+            f"🎬 **{title}**\n"
+            f"👤 الناشر: {uploader}\n\n"
+            f"📢 القناة: {CHANNEL_LINK}\n"
+            f"🫆 البوت: {BOT_LINK}"
+        )
+
+        # إرسال الفيديو للمستخدم
         with open(filename, 'rb') as video:
-            bot.send_video(message.chat.id, video, caption="✨ تم التحميل بنجاح!")
+            bot.send_video(
+                message.chat.id, 
+                video, 
+                caption=caption, 
+                parse_mode="Markdown",
+                reply_to_message_id=message.message_id
+            )
 
-        bot.delete_message(message.chat.id, msg.message_id)
+        # تنظيف وتحسين
         if os.path.exists(filename):
             os.remove(filename)
 
-    except Exception as e:
-        bot.edit_message_text(f"❌ حدث خطأ أثناء التحميل: {e}", message.chat.id, msg.message_id)
+        bot.delete_message(message.chat.id, msg.message_id)
 
-print("جاري تشغيل البوت...")
+    except Exception as e:
+        bot.reply_to(message, f"❌ حدث خطأ أثناء التحميل: {e}")
+
+# --- 7. تشغيل البوت ---
 bot.infinity_polling()
