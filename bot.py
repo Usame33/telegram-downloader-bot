@@ -18,8 +18,7 @@ import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import yt_dlp
 
-TOKEN = "8629100412:AAFbCinwIOHvhSwvReg2l67-K9dqUgHpyjM"
-
+TOKEN = "8629100412:AAEKxaU6hzhJQ5kMavdJqOK2YUNyy_bQT1k"
 
 CHANNEL = "@wanasatt"
 CHANNEL_LINK = "https://t.me/wanasatt"
