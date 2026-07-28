@@ -5,7 +5,21 @@ import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import yt_dlp
 
-# --- 1. إعدادات التليجرام والمصادر ---
+# --- 1. إعداد تطبيق Flask ---
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Bot is running 24/7!"
+
+def run_flask():
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
+
+# تشغيل سيرفر Flask في الخلفية
+threading.Thread(target=run_flask, daemon=True).start()
+
+# --- 2. إعدادات التليجرام والمصادر ---
 TOKEN = os.environ.get("TOKEN")
 CHANNEL = "@wanasatt"
 CHANNEL_LINK = "https://t.me/wanasatt"
@@ -13,7 +27,7 @@ BOT_LINK = "https://t.me/Ussame_bot"
 
 bot = telebot.TeleBot(TOKEN)
 
-# --- 2. إدارة الإحصائيات والمستخدمين ---
+# --- 3. إدارة الإحصائيات والمستخدمين ---
 def update_users(user_id):
     users_file = "users.txt"
     users = set()
@@ -25,7 +39,7 @@ def update_users(user_id):
     with open(users_file, "w") as f:
         f.write("\n".join(users))
 
-# --- 3. التحقق من الاشتراك الإجباري ---
+# --- 4. التحقق من الاشتراك الإجباري ---
 def check_sub(user_id):
     try:
         member = bot.get_chat_member(CHANNEL, user_id)
@@ -44,7 +58,7 @@ def sub_keyboard():
     markup.add(btn_check)
     return markup
 
-# --- 4. أوامر البوت (/start و /stats) ---
+# --- 5. أوامر البوت (/start و /stats) ---
 @bot.message_handler(commands=['start'])
 def start_cmd(message):
     update_users(message.from_user.id)
@@ -81,7 +95,7 @@ def check_sub_callback(call):
     else:
         bot.answer_callback_query(call.id, "❌ لم تشترك في القناة بعد!", show_alert=True)
 
-# --- 5. معالجة الروابط والتحميل ---
+# --- 6. معالجة الروابط والتحميل ---
 def download_hook(d):
     if d['status'] == 'downloading':
         percent = d.get('_percent_str', '0%').strip()
@@ -145,20 +159,5 @@ def process_video_request(message):
     except Exception as e:
         bot.reply_to(message, f"❌ حدث خطأ أثناء التحميل: {e}")
 
-# --- 6. تشغيل البوت و Flask بالتوازي ---
-app = Flask(__name__)
-
-@app.route('/')
-def home():
-    return "Bot is running 24/7!"
-
-def run_bot():
-    bot.infinity_polling(non_stop=True)
-
-# تشغيل البوت في مسار منفصل
-threading.Thread(target=run_bot, daemon=True).start()
-
-# تشغيل خادم Flask الرئيسي لـ Render
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port)
+# --- 7. تشغيل البوت الأساسي ---
+bot.infinity_polling(non_stop=True)
