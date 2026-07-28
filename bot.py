@@ -1,15 +1,18 @@
 import os
 import threading
+import time
+import requests
 from flask import Flask
 import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import yt_dlp
 
 # --- 1. إعدادات التليجرام والمصادر ---
-TOKEN = "8629100412:AAFuygQySRW96QjFnv_ALwMfWZjhpGUUygg"
+TOKEN = "8629100412:AAFbCinwIOHvhSwvReg2l67-K9dqUgHpyjM"
 CHANNEL = "@wanasatt"
 CHANNEL_LINK = "https://t.me/wanasatt"
 BOT_LINK = "https://t.me/Ussame_bot"
+RENDER_URL = "https://telegram-downloader-bot-1-48e1.onrender.com"
 
 bot = telebot.TeleBot(TOKEN)
 
@@ -143,7 +146,7 @@ def process_video_request(message):
     except Exception as e:
         bot.reply_to(message, f"❌ حدث خطأ أثناء التحميل: {e}")
 
-# --- 6. تشغيل Flask والـ Bot معاً ---
+# --- 6. تشغيل Flask والـ Bot وميزة الاستيقاظ الدائم (Keep-Alive) ---
 app = Flask(__name__)
 
 @app.route('/')
@@ -153,7 +156,18 @@ def home():
 def run_bot():
     bot.infinity_polling()
 
+def keep_alive():
+    while True:
+        try:
+            time.sleep(300)  # يرسل طلباً كل 5 دقائق لمنع سيرفر Render من النوم
+            requests.get(RENDER_URL)
+            print("Keep-alive ping sent successfully!")
+        except Exception as e:
+            print(f"Keep-alive error: {e}")
+
+# تشغيل البوت وKeep-Alive في الخيوط الخلفية (Threads)
 threading.Thread(target=run_bot, daemon=True).start()
+threading.Thread(target=keep_alive, daemon=True).start()
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
