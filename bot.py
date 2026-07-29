@@ -3,7 +3,6 @@ import logging
 import asyncio
 import sqlite3
 import threading
-import time
 from datetime import datetime
 from urllib.parse import urlparse
 from flask import Flask
@@ -38,7 +37,7 @@ ADMIN_ID = int(os.getenv("ADMIN_ID", "8904859256"))
 user_locks = {}
 user_links = {}
 
-# ----------------- القوالب والنصوص العصرية -----------------
+# ----------------- القوالب والنصوص -----------------
 MESSAGES = {
     'ar': {
         'welcome': (
@@ -54,46 +53,18 @@ MESSAGES = {
         ),
         'sub_btn': "📢 اشترك في القناة",
         'check_sub_btn': "🫆 تحقق من الاشتراك",
-        'sub_success': (
-            "✅ **تم التحقق من اشتراكك بنجاح.**\n\n"
-            "🎉 يمكنك الآن إرسال أي رابط فيديو."
-        ) 
-        'sub_failed': "🚫 **لم تقم بالاشتراك في القناة بعد!** اشترك ثم اضغط تحقق.",
+        'sub_success': "✅ **تم التحقق من اشتراكك بنجاح.**\n\n🎉 يمكنك الآن إرسال أي رابط فيديو.",
+        'sub_failed': "❌ **لم تقم بالاشتراك في القناة بعد!** اشترك ثم اضغط تحقق.",
+        'busy': "⚠️ **لديك عملية تحميل قيد المعالجة حالياً!** يرجى الانتظار حتى تنتهي.",
         'invalid_link': "❌ **يرجى إرسال رابط فيديو صالح.**",
         'downloading': "⏳ **جاري بدء التحميل والمكافأة...**",
         'uploading': "📤 **جاري رفع الفيديو إلى تلغرام...**",
         'error': "📝 **حدث خطأ غير متوقع أثناء معالجة الرابط.** يرجى المحاولة لاحقاً.",
         'lang_set': "✅ **تم تغيير اللغة إلى العربية.**",
-    },
-    'en': {
-        'welcome': (
-            "✨ **Welcome {name}** 👋\n\n"
-            "🔒 **Notice:**\n"
-            "Please subscribe to our channel first to use this bot.\n\n"
-            "📢 **Bot Channel:**\n"
-            "https://t.me/{channel_raw}"
-        ),
-        'welcome_subbed': (
-            "🎉 **Welcome {name}!**\n\n"
-            "You can now send any video link to download immediately."
-        ),
-        'sub_btn': "📢 Subscribe to Channel",
-        'check_sub_btn': "🫆 Check Subscription",
-        'sub_success': (
-            "✅ **Subscription verified successfully.**\n\n"
-            "🎉 You can now send any video link."
-        ),
-        'sub_failed': "🚫 **You haven't subscribed yet!** Please subscribe and verify.",
-        'busy': "⚠️ **You already have an active download!** Please wait.",
-        'invalid_link': "❌ **Please send a valid video URL.**",
-        'downloading': "⏳ **Starting download...**",
-        'uploading': "📤 **Uploading video to Telegram...**",
-        'error': "📝 **An unexpected error occurred.** Please try again later.",
-        'lang_set': "✅ **Language set to English.**",
     }
 }
 
-# ----------------- قاعدة البيانات (SQLite) -----------------
+# ----------------- قاعدة البيانات -----------------
 def init_db():
     conn = sqlite3.connect("bot_data.db")
     cursor = conn.cursor()
@@ -133,13 +104,6 @@ def get_user_data(user_id: int):
         row = ('ar', 0)
     conn.close()
     return {'lang': row[0], 'downloads_count': row[1]}
-
-def set_user_lang(user_id: int, lang: str):
-    conn = sqlite3.connect("bot_data.db")
-    cursor = conn.cursor()
-    cursor.execute("UPDATE users SET lang = ? WHERE user_id = ?", (lang, user_id))
-    conn.commit()
-    conn.close()
 
 def log_download(user_id: int, url: str):
     domain = urlparse(url).netloc.replace('www.', '').split('.')[0]
@@ -185,7 +149,7 @@ def format_duration(seconds):
     h, m = divmod(m, 60)
     return f"{h:02d}:{m:02d}:{s:02d}" if h > 0 else f"{m:02d}:{s:02d}"
 
-# ----------------- الأوامر والتفاعل -----------------
+# ----------------- الأوامر -----------------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     u_data = get_user_data(user.id)
@@ -196,8 +160,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     keyboard = [
         [InlineKeyboardButton(MESSAGES[lang]['sub_btn'], url=f"https://t.me/{channel_raw}")],
-        [InlineKeyboardButton(MESSAGES[lang]['check_sub_btn'], callback_data="check_sub")],
-        [InlineKeyboardButton("🌐 Change Language / تغيير اللغة", callback_data="change_lang")]
+        [InlineKeyboardButton(MESSAGES[lang]['check_sub_btn'], callback_data="check_sub")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
@@ -219,17 +182,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await query.answer(MESSAGES[lang]['sub_failed'], show_alert=True)
             
-    elif data == "change_lang":
-        keyboard = [
-            [InlineKeyboardButton("🇸🇦 العربية", callback_data="set_lang_ar"), InlineKeyboardButton("🇬🇧 English", callback_data="set_lang_en")]
-        ]
-        await query.message.edit_text("📌 **اختر لغة واجهة البوت / Select Language:**", reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
-        
-    elif data.startswith("set_lang_"):
-        new_lang = data.split("_")[2]
-        set_user_lang(user_id, new_lang)
-        await query.message.edit_text(MESSAGES[new_lang]['lang_set'], parse_mode="Markdown")
-        
     elif data.startswith("dl_"):
         if user_id not in user_links:
             await query.message.edit_text(MESSAGES[lang]['invalid_link'], parse_mode="Markdown")
@@ -268,7 +220,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(MESSAGES[lang]['busy'], parse_mode="Markdown")
         return
 
-    # التخزين المؤقت (Cache Check)
+    # التخزين المؤقت
     cached = get_cached_file(text)
     channel_raw = CHANNEL_USERNAME.replace('@', '')
     if cached:
@@ -281,7 +233,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_links[user_id] = text
 
-    # لوحة خيارات الجودة
     keyboard = [
         [InlineKeyboardButton("🎥 فيديو | 1080p 🔥", callback_data="dl_1080")],
         [InlineKeyboardButton("✨ فيديو | 720p 🌟", callback_data="dl_720")],
@@ -294,7 +245,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown"
     )
 
-# ----------------- دالة التحميل والمعالجة -----------------
+# ----------------- دالة التحميل آمنة التوافقية -----------------
 async def download_and_process(update: Update, context: ContextTypes.DEFAULT_TYPE, url: str, quality: str, status_msg, lang: str):
     chat_id = update.effective_chat.id
     output_template = f"downloads/{chat_id}_%(id)s.%(ext)s"
@@ -302,22 +253,19 @@ async def download_and_process(update: Update, context: ContextTypes.DEFAULT_TYP
     
     await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.RECORD_VIDEO)
 
+    # إعدادات آمنة لضمان التحميل من تيك توك وسيرفرات رندر
     ydl_opts = {
         'outtmpl': output_template,
         'writethumbnail': True,
         'noplaylist': True,
         'geo_bypass': True,
+        'quiet': True,
+        'no_warnings': True,
+        'format': 'best'  # التنسيق الأكثر توافقاً بدون الحاجة لمعالجة معقدة لـ ffmpeg
     }
 
     if quality == "mp3":
         ydl_opts['format'] = 'bestaudio/best'
-        ydl_opts['postprocessors'] = [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '192'}]
-    elif quality == "1080":
-        ydl_opts['format'] = 'bestvideo[height<=1080]+bestaudio/best[height<=1080]'
-    elif quality == "720":
-        ydl_opts['format'] = 'bestvideo[height<=720]+bestaudio/best[height<=720]'
-    else:
-        ydl_opts['format'] = 'bestvideo[height<=480]+bestaudio/best[height<=480]'
 
     file_path = None
     thumb_path = None
@@ -327,8 +275,6 @@ async def download_and_process(update: Update, context: ContextTypes.DEFAULT_TYP
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=True)
                 fn = ydl.prepare_filename(info)
-                if quality == "mp3":
-                    fn = os.path.splitext(fn)[0] + ".mp3"
                 
                 t_path = None
                 base_name = os.path.splitext(fn)[0]
@@ -347,9 +293,8 @@ async def download_and_process(update: Update, context: ContextTypes.DEFAULT_TYP
         await status_msg.edit_text(MESSAGES[lang]['uploading'], parse_mode="Markdown")
         await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.UPLOAD_VIDEO)
 
-        # تجهيز البيانات بالتفاصيل المطلوبة
         file_size_mb = os.path.getsize(file_path) / (1024 * 1024)
-        uploader = info_dict.get('uploader') or info_dict.get('uploader_id') or '@username'
+        uploader = info_dict.get('uploader') or info_dict.get('uploader_id') or 'TikTok User'
         if not uploader.startswith('@') and not uploader.startswith('http'):
             uploader = f"@{uploader.replace(' ', '_')}"
             
@@ -357,7 +302,6 @@ async def download_and_process(update: Update, context: ContextTypes.DEFAULT_TYP
         channel_raw = CHANNEL_USERNAME.replace('@', '')
         quality_str = f"{quality}p" if quality != "mp3" else "MP3 Audio"
 
-        # قالب الرسالة المنسق والمطابق لطلبك
         caption_text = (
             "✅ **تم التحميل بنجاح**\n\n"
             f"📦 **الحجم:** {file_size_mb:.1f} MB\n"
@@ -408,46 +352,9 @@ async def download_and_process(update: Update, context: ContextTypes.DEFAULT_TYP
                 except Exception:
                     pass
 
-# ----------------- لوحة تحكم المالك (/stats) -----------------
-async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if user_id != ADMIN_ID:
-        return
-
-    today = datetime.now().strftime('%Y-%m-%d')
-    conn = sqlite3.connect("bot_data.db")
-    cursor = conn.cursor()
-    
-    cursor.execute("SELECT COUNT(*) FROM users")
-    total_users = cursor.fetchone()[0]
-
-    cursor.execute("SELECT COUNT(*) FROM downloads_log WHERE download_date = ?", (today,))
-    today_downloads = cursor.fetchone()[0]
-
-    cursor.execute("SELECT COUNT(*) FROM downloads_log")
-    total_downloads = cursor.fetchone()[0]
-
-    cursor.execute("SELECT platform, COUNT(*) as c FROM downloads_log GROUP BY platform ORDER BY c DESC LIMIT 3")
-    top_platforms = cursor.fetchall()
-    conn.close()
-
-    platforms_str = "\n".join([f"• {p[0].capitalize()}: `{p[1]}` عملية" for p in top_platforms]) or "لا توجد بيانات كافية"
-
-    msg = (
-        "📈 **لوحة إدارة وإحصائيات البوت:**\n\n"
-        f"👤 **عدد المستخدمين الكلي:** `{total_users}` مستخدم\n"
-        f"📥 **تحميلات اليوم:** `{today_downloads}` فيديو\n"
-        f"📊 **إجمالي التحميلات:** `{total_downloads}` عملية\n\n"
-        f"🌐 **أكثر المنصات استخداماً:**\n{platforms_str}"
-    )
-    await update.message.reply_text(msg, parse_mode="Markdown")
-
-# ----------------- تشغيل التطبيق -----------------
 def main():
     application = ApplicationBuilder().token(TOKEN).build()
-
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("stats", stats_command))
     application.add_handler(CallbackQueryHandler(button_callback))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
