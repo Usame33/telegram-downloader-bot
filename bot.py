@@ -10,7 +10,7 @@ logging.basicConfig(format='%(asctime)s - [%(levelname)s] - %(message)s', level=
 
 TOKEN = "8629100412:AAGuY2wf13Mr7R3gsMxAon1bYrTELnsu94U"
 CHANNEL_URL = "https://t.me/wanasatt"
-CHANNEL_USERNAME = "@wanasatt"  # معرف قناتك للاستعلام عن الاشتراك
+CHANNEL_USERNAME = "@wanasatt"  # معرف قناتك للاستعلام عن الاشتراك برمجياً
 
 # --- دالة فحص الاشتراك الإجباري ---
 async def check_subscription(user_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
@@ -22,7 +22,7 @@ async def check_subscription(user_id: int, context: ContextTypes.DEFAULT_TYPE) -
         logging.error(f"Subscription Check Error: {e}")
     return False
 
-# --- أمر البداية /start بتصميم عصري ---
+# --- أمر البداية /start مع نظام الاشتراك الإجباري ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     user_name = update.effective_user.first_name
@@ -68,7 +68,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     
-    # فحص الاشتراك الإجباري
+    # فحص الاشتراك الإجباري قبل إرسال الرابط
     is_subscribed = await check_subscription(user_id, context)
     if not is_subscribed:
         keyboard = [
@@ -114,7 +114,6 @@ async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
             format_id = f.get('format_id')
             if height and height not in seen_qualities:
                 seen_qualities.add(height)
-                # أيقونات عصرية حسب جودة الفيديو
                 icon = "🔥" if height >= 720 else "📱"
                 keyboard.append([
                     InlineKeyboardButton(f"{icon} جودة العرض {height}p", callback_data=f"dl|{video_id}|{format_id}")
@@ -129,7 +128,6 @@ async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    # تنظيف العنوان لكي لا يكسر تنسيق الماركداون
     clean_title = info.get('title', 'فيديو بدون عنوان').replace('_', ' ').replace('*', ' ')
     if len(clean_title) > 60:
         clean_title = clean_title[:60] + "..."
@@ -151,13 +149,13 @@ def fetch_video_info(url):
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         return ydl.extract_info(url, download=False)
 
-# --- معالجة الضغط على الأزرار ---
+# --- معالجة الضغط على الأزرار (التحقق والتحميل) ---
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     user_id = query.from_user.id
     data = query.data.split("|")
     
-    # زر التحقق من الاشتراك
+    # 1. زر التحقق من الاشتراك
     if data[0] == "check_sub":
         await query.answer()
         is_subscribed = await check_subscription(user_id, context)
@@ -177,7 +175,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await query.answer()
     
-    # فحص أمني إضافي أثناء التحميل
+    # 2. فحص أمني إضافي للتأكد من بقاء المستخدم مشتركاً أثناء التحميل
     if not await check_subscription(user_id, context):
         await query.edit_message_text("⚠️ **عذراً، لقد قمت بإلغاء الاشتراك من القناة! يرجى إعادة الاشتراك للاستمرار.**", parse_mode="Markdown")
         return
@@ -239,7 +237,7 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_url))
     app.add_handler(CallbackQueryHandler(button_callback))
 
-    print("⚡ البوت المطور يعمل الآن بكفاءة وبأعلى معايير الأمان والتصميم...")
+    print("⚡ البوت يعمل الآن بنظام الاشتراك الإجباري وبصمة النيون وبأعلى أداء...")
     app.run_polling()
 
 if __name__ == '__main__':
