@@ -1,6 +1,8 @@
 import os
 import asyncio
 import logging
+from threading import Thread
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 import yt_dlp
@@ -8,9 +10,26 @@ import yt_dlp
 # إعداد السجلات
 logging.basicConfig(format='%(asctime)s - [%(levelname)s] - %(message)s', level=logging.INFO)
 
-TOKEN = "8629100412:AAGQx_rPYetvfTvFziq9xG3-TVszcj3i9uI"
+TOKEN = "8629100412:AAFtcB8IT7D-aXpTSsy2b1Tcu05Ta4JUft4"
 CHANNEL_URL = "https://t.me/wanasatt"
 CHANNEL_USERNAME = "@wanasatt"
+
+# --- 🌐 خادم ويب وهمي مصغر لإبقاء Render حياً عبر UptimeRobot ---
+class PingHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html; charset=utf-8')
+        self.end_headers()
+        self.wfile.write(b"Bot is active and running 24/7!")
+
+    def log_message(self, format, *args):
+        return  # إخفاء سجلات طلبات UptimeRobot لعدم إزعاج السجلات
+
+def run_web_server():
+    port = int(os.environ.get("PORT", 8080))
+    server = HTTPServer(('0.0.0.0', port), PingHandler)
+    logging.info(f"🌐 Web server started on port {port} for UptimeRobot pings.")
+    server.serve_forever()
 
 # --- القاموس متعدد اللغات (AR, EN, TR, FA) ---
 TEXTS = {
@@ -116,14 +135,12 @@ TEXTS = {
     }
 }
 
-# --- دالة الحصول على لغة المستخدم ---
 def get_lang(user_lang_code: str) -> dict:
     if not user_lang_code:
         return TEXTS['ar']
     lang = user_lang_code.lower()[:2]
     return TEXTS.get(lang, TEXTS['en'])
 
-# --- دالة فحص الاشتراك الإجباري ---
 async def check_subscription(user_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
     try:
         member = await context.bot.get_chat_member(chat_id=CHANNEL_USERNAME, user_id=user_id)
@@ -133,7 +150,6 @@ async def check_subscription(user_id: int, context: ContextTypes.DEFAULT_TYPE) -
         logging.error(f"Subscription Check Error: {e}")
     return False
 
-# --- الواجهة الرئيسية (/start) ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     lang = get_lang(user.language_code)
@@ -158,7 +174,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     welcome_msg = lang['welcome'].format(name=user.first_name)
     await update.message.reply_text(welcome_msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
 
-# --- معالجة الرابط ---
 async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     lang = get_lang(user.language_code)
@@ -237,7 +252,6 @@ def fetch_video_info(url):
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         return ydl.extract_info(url, download=False)
 
-# --- معالجة الأزرار التفاعلية ---
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     user = query.from_user
@@ -276,7 +290,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     url = video_data['url']
     loop = asyncio.get_running_loop()
 
-    # تحميل فيديو
     if action == "dl_vid":
         await query.answer()
         format_id = data[2]
@@ -301,7 +314,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         finally:
             if os.path.exists(filename): os.remove(filename)
 
-    # تحميل صوت MP3
     elif action == "dl_audio":
         await query.answer()
         await query.edit_message_text(lang['downloading_aud'], parse_mode="Markdown")
@@ -347,14 +359,18 @@ def download_media(url, format_id, output_filename, is_audio=False):
         ydl.download([url])
 
 def main():
+    # ⚡ تشغيل سيرفر الويب المصغر في خيط خلفي (Thread) لإرضاء Render و UptimeRobot
+    Thread(target=run_web_server, daemon=True).start()
+
     app = Application.builder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_url))
     app.add_handler(CallbackQueryHandler(button_callback))
 
-    print("🚀 البوت متعدد اللغات تعمل الآن بأعلى كفاءة...")
+    print("🚀 البوت والسيرفر يعملان الآن بأعلى كفاءة...")
     app.run_polling()
 
 if __name__ == '__main__':
     main()
+ 
