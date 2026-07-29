@@ -8,7 +8,7 @@ import yt_dlp
 # إعداد السجلات بشكل أنيق
 logging.basicConfig(format='%(asctime)s - [%(levelname)s] - %(message)s', level=logging.INFO)
 
-TOKEN = "8629100412:AAGuY2wf13Mr7R3gsMxAon1bYrTELnsu94U"
+TOKEN = "8629100412:AAEVTOr4Yko7AjV068zrxtz0q6ykXpjVARM"
 CHANNEL_URL = "https://t.me/wanasatt"
 CHANNEL_USERNAME = "@wanasatt"  # معرف قناتك للاستعلام عن الاشتراك برمجياً
 
