@@ -2,19 +2,33 @@ import os
 import logging
 import asyncio
 import sqlite3
+import threading
+from flask import Flask
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, CallbackQueryHandler, filters
 import yt_dlp
 
-# إعداد السجلات
+# ----------------- إعداد خادم الويب (Flask) لإبقاء البوت مستيقظاً 24/7 -----------------
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Bot is alive and running 24/7!"
+
+def run_flask():
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
+
+# تشغيل خادم الويب في Thread مستقل
+threading.Thread(target=run_flask, daemon=True).start()
+
+# ----------------- إعدادات البوت وقاعدة البيانات -----------------
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
-# الإعدادات الرئيسية
 TOKEN = os.getenv("BOT_TOKEN", "8629100412:AAFn_wgwwO_ZN_ifYyGqdADlvU-IZDUkgZY")
-CHANNEL_USERNAME = os.getenv("CHANNEL_USERNAME", "@wanasatt") # قناة الاشتراك الإجباري
-ADMIN_ID = int(os.getenv("ADMIN_ID", "8904859256")) # معرف حسابك كمالك للبوت
+CHANNEL_USERNAME = os.getenv("CHANNEL_USERNAME", "@wanasatt")
+ADMIN_ID = int(os.getenv("ADMIN_ID", "8904859256"))
 
-# ----------------- إعداد قاعدة البيانات -----------------
 def init_db():
     conn = sqlite3.connect("bot_data.db")
     cursor = conn.cursor()
@@ -61,7 +75,6 @@ def get_stats():
     return total_users, stats_data
 
 init_db()
-
 user_links = {}
 
 # التحقق من الاشتراك الإجباري
@@ -82,9 +95,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     is_subscribed = await check_subscription(user_id, context)
     
     if not is_subscribed:
+        # تمت إضافة أيقونة البصمة 🫆 في زر التحقق
         keyboard = [
             [InlineKeyboardButton("📢 اشترك في القناة الرسمية", url=f"https://t.me/{CHANNEL_USERNAME.replace('@', '')}")],
-            [InlineKeyboardButton("🔄 تحقق من الاشتراك", callback_data="check_sub")]
+            [InlineKeyboardButton("🔄 تحقق من الاشتراك 🫆", callback_data="check_sub")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
@@ -105,13 +119,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # أمر الإحصائيات (خاص بالمالك فقط)
 async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    
     if user_id != ADMIN_ID:
         await update.message.reply_text("❌ هذا الأمر مخصص لمالك البوت فقط.")
         return
 
     total_users, stats_data = get_stats()
-    
     msg = (
         "📊 **إحصائيات البوت الشاملة:**\n\n"
         f"👤 **عدد المستخدمين الكلي:** `{total_users}` مستخدم\n"
@@ -124,7 +136,7 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     await update.message.reply_text(msg, parse_mode="Markdown")
 
-# التعامل مع الأزرار التفاعلية
+# التعامل مع أزرار الإنلاين
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -157,7 +169,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if success:
             increment_stat(f"dl_{quality}")
 
-# استقبال الروابط
+# استقبال الرسائل والروابط
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     add_user(user_id)
