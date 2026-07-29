@@ -1,174 +1,201 @@
 import os
-import threading
-import time
-import requests
-from flask import Flask
-import telebot
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+import sys
+import logging
+import asyncio
+import subprocess
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    MessageHandler,
+    CallbackQueryHandler,
+    filters,
+    ContextTypes,
+)
 import yt_dlp
 
-# --- 1. إعدادات التليجرام والمصادر ---
-TOKEN = "8629100412:AAEo11I4WksPAFh0NNaPRfy0RdLPL_myp2M"
-CHANNEL = "@wanasatt"
-CHANNEL_LINK = "https://t.me/wanasatt"
-BOT_LINK = "https://t.me/Ussame_bot"
-RENDER_URL = "https://telegram-downloader-bot-1-48e1.onrender.com"
+# تحديث تلقائي لـ yt-dlp عند تشغيل البوت لضمان دعم كافة المنصات
+try:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", "yt-dlp"])
+except Exception as e:
+    print(f"Failed to update yt-dlp: {e}")
 
-bot = telebot.TeleBot(TOKEN)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# --- 2. إدارة الإحصائيات والمستخدمين ---
-def update_users(user_id):
-    users_file = "users.txt"
-    users = set()
-    if os.path.exists(users_file):
-        with open(users_file, "r") as f:
-            users = set(f.read().splitlines())
-    
-    users.add(str(user_id))
-    with open(users_file, "w") as f:
-        f.write("\n".join(users))
+# التوكن الجديد الخاص بالبوت
+TOKEN = os.getenv("BOT_TOKEN", "8629100412:AAE507iUBx8p5x05xgXxcToSX4n_r_TGa0w")
+CHANNEL_URL = "https://t.me/wanasatt"
 
-# --- 3. التحقق من الاشتراك الإجباري ---
-def check_sub(user_id):
-    try:
-        member = bot.get_chat_member(CHANNEL, user_id)
-        if member.status in ['creator', 'administrator', 'member']:
-            return True
-        return False
-    except Exception as e:
-        print(f"خطأ في فحص الاشتراك: {e}")
-        return False
+# قاموس مؤقت لتخزين روابط المستخدمين بين الخطوات
+user_links = {}
 
-def sub_keyboard():
-    markup = InlineKeyboardMarkup()
-    btn_link = InlineKeyboardButton("📢 اشترك في القناة أولاً", url=CHANNEL_LINK)
-    btn_check = InlineKeyboardButton("🫆 تأكيد الاشتراك", callback_data="check_sub")
-    markup.add(btn_link)
-    markup.add(btn_check)
-    return markup
-
-# --- 4. أوامر البوت (/start و /stats) ---
-@bot.message_handler(commands=['start'])
-def start_cmd(message):
-    update_users(message.from_user.id)
-    
-    if not check_sub(message.from_user.id):
-        bot.send_message(
-            message.chat.id, 
-            "⚠️ عذراً، يجب عليك الاشتراك في القناة لاستخدام البوت:", 
-            reply_markup=sub_keyboard()
-        )
-        return
-
-    bot.reply_to(message, "مرحباً بك! أرسل لي رابط الفيديو الذي تريد تحميله 🚀")
-
-@bot.message_handler(commands=['stats'])
-def stats_cmd(message):
-    users_file = "users.txt"
-    total_users = 0
-    if os.path.exists(users_file):
-        with open(users_file, "r") as f:
-            total_users = len(f.read().splitlines())
-            
-    bot.reply_to(
-        message, 
-        f"📊 إحصائيات البوت الحالية:\n\n👥 إجمالي عدد المستخدمين: {total_users}"
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    welcome_text = (
+        "<b>مرحباً بك في بوت التحميل الاحترافي 🚀</b>\n\n"
+        "أرسل لي <b>رابط المقطع</b> وسأعطيك خيارات تحميل الجودة أو الصوت بكل سهولة! ⚡️"
+    )
+    keyboard = [
+        [
+            InlineKeyboardButton("📢 القناة الرسمية", url=CHANNEL_URL),
+            InlineKeyboardButton("💬 الدعم الفني", url="https://t.me/Ussame_bot")
+        ]
+    ]
+    await update.message.reply_text(
+        text=welcome_text,
+        parse_mode="HTML",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        disable_web_page_preview=True
     )
 
-@bot.callback_query_handler(func=lambda call: call.data == "check_sub")
-def check_sub_callback(call):
-    if check_sub(call.from_user.id):
-        bot.answer_callback_query(call.id, "🫆 تم التحقق بنجاح! شكراً لاشتراكك")
-        bot.send_message(call.message.chat.id, "أرسل لي الآن رابط الفيديو الذي تريد تحميله.")
+# 1. عند استلام الرابط: تحليل الفيديو وإظهار أزرار الدقة
+async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    url = update.message.text.strip()
+    if not url.startswith(("http://", "https://")):
+        return
+
+    status_msg = await update.message.reply_text("🔎 <i>جاري تحليل الرابط وجلب الجودات المتاحة...</i>", parse_mode="HTML")
+
+    # حفظ الرابط الخاص بالمستخدم
+    user_id = update.effective_user.id
+    user_links[user_id] = url
+
+    # لوحة الأزرار المودرن للاختيار
+    keyboard = [
+        [
+            InlineKeyboardButton("🎬 فيديو | 1080p 🔥", callback_data="dl_1080"),
+            InlineKeyboardButton("🎬 فيديو | 720p ✨", callback_data="dl_720")
+        ],
+        [
+            InlineKeyboardButton("🎬 فيديو | 480p ⚡️", callback_data="dl_480"),
+            InlineKeyboardButton("🎵 صوت فقط | MP3 🎧", callback_data="dl_mp3")
+        ],
+        [
+            InlineKeyboardButton("📢 قناتنا على تلجرام 🚀", url=CHANNEL_URL)
+        ]
+    ]
+
+    await status_msg.edit_text(
+        "<b>🎬 اختر الجودة أو الصيغة المطلوبة للتحميل:</b>\n\n"
+        "👇 اضغط على أحد الخيارات أدناه لبدء التنزيل فوراً:",
+        parse_mode="HTML",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+# 2. عند النقر على أحد الأزرار: تنفيذ التنزيل حسب الخيار
+async def process_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    user_id = query.from_user.id
+    url = user_links.get(user_id)
+
+    if not url:
+        await query.edit_message_text("❌ <b>انتهت جلسة التحميل!</b> يرجى إرسال الرابط من جديد.", parse_mode="HTML")
+        return
+
+    choice = query.data
+    output_template = f"downloads/{user_id}_%(id)s.%(ext)s"
+
+    # تحديد خيارات yt-dlp بناءً على زر المستخدم
+    if choice == "dl_mp3":
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'outtmpl': output_template,
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '192',
+            }],
+            'quiet': True,
+        }
+        is_audio = True
     else:
-        bot.answer_callback_query(call.id, "❌ لم تشترك في القناة بعد!", show_alert=True)
+        res_map = {
+            "dl_1080": "1080",
+            "dl_720": "720",
+            "dl_480": "480"
+        }
+        target_res = res_map.get(choice, "720")
+        
+        ydl_opts = {
+            'format': f'bestvideo[height<={target_res}][ext=mp4]+bestaudio[ext=m4a]/best[height<={target_res}][ext=mp4]/best',
+            'outtmpl': output_template,
+            'quiet': True,
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        }
+        is_audio = False
 
-# --- 5. معالجة الروابط والتحميل ---
-def download_hook(d):
-    if d['status'] == 'downloading':
-        percent = d.get('_percent_str', '0%').strip()
-        print(f"جاري التحميل: {percent}")
+    await query.edit_message_text("⚡️ <i>جاري التحميل بالصيغة والجودة المختارة...</i>", parse_mode="HTML")
 
-@bot.message_handler(func=lambda message: True)
-def process_video_request(message):
-    update_users(message.from_user.id)
-    
-    if not check_sub(message.from_user.id):
-        bot.send_message(
-            message.chat.id, 
-            "⚠️ يجب عليك الاشتراك في القناة أولاً لتتمكن من التحميل:", 
-            reply_markup=sub_keyboard()
-        )
-        return
-
-    url = message.text.strip()
-    if not url.startswith("http"):
-        bot.reply_to(message, "❌ يرجى إرسال رابط فيديو صحيح.")
-        return
-
-    msg = bot.reply_to(message, "⏳ جاري جلب المعلومات وتحميل الفيديو...")
-
-    ydl_opts = {
-        'format': 'best[ext=mp4]/best',
-        'outtmpl': f'video_{message.from_user.id}.%(ext)s',
-        'quiet': True,
-        'no_warnings': True,
-        'progress_hooks': [download_hook],
-    }
+    loop = asyncio.get_event_loop()
 
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            filename = ydl.prepare_filename(info)
-            title = info.get('title', 'فيديو بدون عنوان')
-            uploader = info.get('uploader', 'غير معروف')
+        def run_dl():
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=True)
+                filename = ydl.prepare_filename(info)
+                if is_audio:
+                    filename = os.path.splitext(filename)[0] + ".mp3"
+                return info, filename
 
+        info, file_path = await loop.run_in_executor(None, run_dl)
+
+        await query.edit_message_text("📤 <i>جاري إرسال الملف إليك...</i>", parse_mode="HTML")
+
+        title = info.get('title', 'مقطع ميديا')
         caption = (
-            f"🎬 {title}\n"
-            f"👤 الناشر: {uploader}\n\n"
-            f"📢 القناة: {CHANNEL_LINK}\n"
-            f"🫆 البوت: {BOT_LINK}"
+            f"📌 <b>{title}</b>\n\n"
+            f"✨ <i>تم التحميل عبر: @Ussame_bot</i>"
         )
+        
+        channel_btn = InlineKeyboardMarkup([
+            [InlineKeyboardButton("📢 اشترك في قناتنا الرسمية 🚀", url=CHANNEL_URL)]
+        ])
 
-        with open(filename, 'rb') as video:
-            bot.send_video(
-                message.chat.id, 
-                video, 
-                caption=caption,
-                reply_to_message_id=message.message_id
-            )
+        if is_audio:
+            with open(file_path, 'rb') as audio_file:
+                await context.bot.send_audio(
+                    chat_id=query.message.chat_id,
+                    audio=audio_file,
+                    caption=caption,
+                    parse_mode="HTML",
+                    reply_markup=channel_btn
+                )
+        else:
+            with open(file_path, 'rb') as video_file:
+                await context.bot.send_video(
+                    chat_id=query.message.chat_id,
+                    video=video_file,
+                    caption=caption,
+                    parse_mode="HTML",
+                    reply_markup=channel_btn
+                )
 
-        if os.path.exists(filename):
-            os.remove(filename)
+        if os.path.exists(file_path):
+            os.remove(file_path)
 
-        bot.delete_message(message.chat.id, msg.message_id)
+        await query.delete_message()
 
     except Exception as e:
-        bot.reply_to(message, f"❌ حدث خطأ أثناء التحميل: {e}")
+        logger.error(f"Error processing link: {e}")
+        await query.edit_message_text(
+            "❌ <b>حدث خطأ أثناء التنزيل!</b>\nقد تكون الجودة المختارة غير متوفرة لهذا المقطع أو أن الرابط محمي.",
+            parse_mode="HTML"
+        )
 
-# --- 6. تشغيل Flask والـ Bot وميزة الاستيقاظ الدائم (Keep-Alive) ---
-app = Flask(__name__)
+def main():
+    if not os.path.exists("downloads"):
+        os.makedirs("downloads")
 
-@app.route('/')
-def home():
-    return "Bot is running 24/7!"
+    app = Application.builder().token(TOKEN).build()
 
-def run_bot():
-    bot.infinity_polling()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_url))
+    app.add_handler(CallbackQueryHandler(process_choice))
 
-def keep_alive():
-    while True:
-        try:
-            time.sleep(300)  # يرسل طلباً كل 5 دقائق لمنع سيرفر Render من النوم
-            requests.get(RENDER_URL)
-            print("Keep-alive ping sent successfully!")
-        except Exception as e:
-            print(f"Keep-alive error: {e}")
+    print("Bot is running with new token...")
+    app.run_polling()
 
-# تشغيل البوت وKeep-Alive في الخيوط الخلفية (Threads)
-threading.Thread(target=run_bot, daemon=True).start()
-threading.Thread(target=keep_alive, daemon=True).start()
-
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port)
+if __name__ == "__main__":
+    main()
