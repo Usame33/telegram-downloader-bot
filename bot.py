@@ -1,4 +1,4 @@
-import os
+
 import asyncio
 import logging
 from threading import Thread
@@ -408,3 +408,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+ os
