@@ -41,7 +41,7 @@ def run_keep_alive():
 threading.Thread(target=run_keep_alive, daemon=True).start()
 
 # ==========================================
-# 1. التحديث التلقائي لـ yt-dlp
+# 1. التحديث التلقائي لمكتبة التنزيل
 # ==========================================
 try:
     subprocess.run(
@@ -53,12 +53,12 @@ except Exception:
     pass
 
 # ==========================================
-# 2. الإعدادات وقواعد البيانات
+# 2. الإعدادات وتجهيز المجلدات وقواعد البيانات
 # ==========================================
 BOT_TOKEN = "8629100412:AAFnsQbPXXTjyJro49NXAYe0ut3Z-PoeOu8"
 CHANNEL_USERNAME = "@wanasatt"
 CHANNEL_URL = "https://t.me/wanasatt"
-ADMIN_ID = 123456789  # قم بتغييره لمعرفك الشخصي
+ADMIN_ID = 123456789  # ضع آيدي حسابه في تلغرام هنا
 
 DOWNLOAD_DIR = Path("downloads")
 DOWNLOAD_DIR.mkdir(exist_ok=True)
@@ -80,64 +80,84 @@ broadcast_mode = {}
 downloads_count = 0
 
 # ==========================================
-# 3. النصوص المحدثة بـ 4 لغات وتصميم حديـث
+# 3. النصوص المحدثة بـ 4 لغات وأيقونات جذابة
 # ==========================================
 TEXT = {
     "ar": {
         "welcome": (
-            "💎 <b>ULTRA MEDIA DOWNLOADER</b> 💎\n"
-            "━━━ 🚀 <b>نظام التحميل الذكي</b> ━━━\n\n"
-            "✨ <b>مرحباً بك في أسرع بوت تحميل!</b>\n"
-            "🌀 <b>المنصات المدعومة:</b> YouTube, TikTok, Instagram, Twitter...\n"
-            "🎧 <b>استخراج الصوتيات:</b> MP3 عالية النقاوة 320kbps\n\n"
-            "⚙️ <b>يرجى اختيار الجودة المطلوبة للبدء:</b>"
+            "╭━━━ 💎 <b>ULTRA DOWNLOADER V4</b> 💎 ━━━╮\n"
+            "│\n"
+            "├── ⚡️ <b>مرحباً بك في أسرع بوت تحميل آلي!</b>\n"
+            "│\n"
+            "├── 🌟 <b>الخدمات والمنصات المدعومة:</b>\n"
+            "│  ├ 🌀 YouTube (Videos & Shorts)\n"
+            "│  ├ 🎵 TikTok (بدون علامة مائية)\n"
+            "│  ├ 📸 Instagram (Reels & Stories)\n"
+            "│  └ 🎧 استخراج الصوت بأعلى نقاء MP3\n"
+            "│\n"
+            "╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\n\n"
+            "⚙️ <b>اختر جودة التنزيل المطلوبة للبدء:</b>"
         ),
         "need_sub": (
-            "⚠️ <b>الاشتراك إجباري لاستخدام البوت!</b>\n\n"
-            "🔰 نرجو منك الانضمام لقناتنا للاستفادة من كافة خدمات التحميل المجانية، ثم اضغط على زر التفعيل بالأسفل 👇"
+            "╭━━━ ⚠️ <b>اشتراك إجباري للتفعيل</b> ⚠️ ━━━╮\n"
+            "│\n"
+            "│ 🔰 لضمان مجانية الخدمة والتحميل السريع،\n"
+            "│ يرجى الاشتراك بقناتنا الرسمية أولاً.\n"
+            "│\n"
+            "╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯"
         ),
-        "sub_btn": "📢 رابط القناة الرسمية",
-        "check_sub": "🔄 اضغط هنا للتفعيل",
+        "sub_btn": "📢 الانضمام للقناة الرسمية",
+        "check_sub": "🔄 اضغط هنا للتفعيل بعد الاشتراك",
         "checking": "🔍 <b>جاري فحص الرابط وفك القيود...</b> ⏳\n\n<code>[░░░░░░░░░░░░░░░░░░░░] 0%</code>",
-        "downloading": "📥 <b>جاري تحميل المقطع من السيرفر...</b> 🚀\n\n<code>[{}] {}%</code>",
+        "downloading": "📥 <b>جاري تنزيل المحتوى بالسيرفر...</b> 🚀\n\n<code>[{}] {}%</code>",
         "uploading": "📤 <b>جاري إرسال الملف إليك...</b> ⚡️\n\n<code>[████████████████████] 100%</code>",
-        "failed": "❌ <b>تعذر تحميل المقطع!</b>\nتأكد من أن الرابط عام وصحيح ثم حاول مجدداً.",
-        "verified": "🎉 <b>تم التفعيل بنجاح!</b>\n\n🔗 يمكنك الآن إرسال أي رابط للبدء في التحميل.",
-        "not_subbed": "🚫 عذراً، لم تقم بالاشتراك في القناة بعد!",
-        "quality_selected": "🎯 <b>تم وضع الجودة على:</b> <code>{}</code>\n\n📥 <b>أرسل رابط المقطع الآن.</b>",
+        "failed": "❌ <b>عذراً، تعذر جلب المقطع!</b>\nتأكد من أن الرابط عام وصحيح ثم حاول مجدداً.",
+        "verified": "🎉 <b>تم تفعيل حسابك بنجاح!</b>\n\n🔗 أرسل أي رابط الآن وسأقوم بتحميله فوراً.",
+        "not_subbed": "🚫 عذراً، لم تشترك في القناة بعد!",
+        "quality_selected": "🎯 <b>تم اختيار الجودة:</b> <code>{}</code>\n\n📥 <b>أرسل رابط المقطع الآن للبدء.</b>",
         "uploader": "المنشئ",
         "duration": "المدة",
         "platform": "المنصة",
         "size": "الحجم",
         "seconds": "ثانية",
-        "visit_channel": "✨ القناة الرسمية للمطور",
-        "choose_lang": "🌐 <b>اختر لغة استخدام البوت / Choose Language:</b>",
+        "visit_channel": "✨ القناة الرسمية للبوت",
+        "choose_lang": "🌐 <b>اختر لغة واجهة البوت / Choose Language:</b>",
         "lang_changed": "✅ <b>تم تحديث اللغة بنجاح!</b>",
-        "best_q": "🔥 الجودة الأقصى (Auto)",
+        "best_q": "🔥 الجودة الأقصى (تلقائي)",
         "audio_only": "🎵 صوت فقط (MP3 High Quality)"
     },
     "en": {
         "welcome": (
-            "💎 <b>ULTRA MEDIA DOWNLOADER</b> 💎\n"
-            "━━━ 🚀 <b>Smart Download Engine</b> ━━━\n\n"
-            "✨ <b>Welcome to the fastest downloader!</b>\n"
-            "🌀 <b>Supported Platforms:</b> YouTube, TikTok, Instagram, Twitter...\n"
-            "🎧 <b>Audio Extraction:</b> High Quality 320kbps MP3\n\n"
+            "╭━━━ 💎 <b>ULTRA DOWNLOADER V4</b> 💎 ━━━╮\n"
+            "│\n"
+            "├── ⚡️ <b>Welcome to the fastest downloader!</b>\n"
+            "│\n"
+            "├── 🌟 <b>Supported Platforms:</b>\n"
+            "│  ├ 🌀 YouTube (Videos & Shorts)\n"
+            "│  ├ 🎵 TikTok (No Watermark)\n"
+            "│  ├ 📸 Instagram (Reels & Stories)\n"
+            "│  └ 🎧 High Quality 320kbps MP3 Audio\n"
+            "│\n"
+            "╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\n\n"
             "⚙️ <b>Select your preferred video quality:</b>"
         ),
         "need_sub": (
-            "⚠️ <b>Mandatory Subscription Required!</b>\n\n"
-            "🔰 Please subscribe to our official channel to enjoy unlimited downloads, then click verify below 👇"
+            "╭━━━ ⚠️ <b>Subscription Required</b> ⚠️ ━━━╮\n"
+            "│\n"
+            "│ 🔰 Please join our official channel first\n"
+            "│ to unlock unlimited downloads.\n"
+            "│\n"
+            "╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯"
         ),
-        "sub_btn": "📢 Official Channel",
-        "check_sub": "🔄 Verify Subscription",
+        "sub_btn": "📢 Join Official Channel",
+        "check_sub": "🔄 Verify Subscription Now",
         "checking": "🔍 <b>Analyzing link and bypassing limits...</b> ⏳\n\n<code>[░░░░░░░░░░░░░░░░░░░░] 0%</code>",
         "downloading": "📥 <b>Downloading content to server...</b> 🚀\n\n<code>[{}] {}%</code>",
         "uploading": "📤 <b>Sending file to you...</b> ⚡️\n\n<code>[████████████████████] 100%</code>",
-        "failed": "❌ <b>Download Failed!</b>\nEnsure the link is valid and public.",
-        "verified": "🎉 <b>Account Verified!</b>\n\n🔗 You can send any link now to start downloading.",
+        "failed": "❌ <b>Download Failed!</b>\nEnsure the link is correct and public.",
+        "verified": "🎉 <b>Account Verified!</b>\n\n🔗 Send any media link now to start downloading.",
         "not_subbed": "🚫 You haven't joined the channel yet!",
-        "quality_selected": "🎯 <b>Quality set to:</b> <code>{}</code>\n\n📥 <b>Send media link now.</b>",
+        "quality_selected": "🎯 <b>Selected Quality:</b> <code>{}</code>\n\n📥 <b>Send media link now.</b>",
         "uploader": "Uploader",
         "duration": "Duration",
         "platform": "Platform",
@@ -151,58 +171,78 @@ TEXT = {
     },
     "tr": {
         "welcome": (
-            "💎 <b>ULTRA MEDIA DOWNLOADER</b> 💎\n"
-            "━━━ 🚀 <b>Akıllı İndirme Sistemi</b> ━━━\n\n"
-            "✨ <b>En hızlı indirme botuna hoş geldiniz!</b>\n"
-            "🌀 <b>Desteklenen Platformlar:</b> YouTube, TikTok, Instagram...\n"
-            "🎧 <b>Ses Çıkarma:</b> Yüksek Kalite MP3 320kbps\n\n"
-            "⚙️ <b>Lütfen istediğiniz video kalitesini seçin:</b>"
+            "╭━━━ 💎 <b>ULTRA DOWNLOADER V4</b> 💎 ━━━╮\n"
+            "│\n"
+            "├── ⚡️ <b>En hızlı indirme botuna hoş geldiniz!</b>\n"
+            "│\n"
+            "├── 🌟 <b>Desteklenen Platformlar:</b>\n"
+            "│  ├ 🌀 YouTube (Videolar & Shorts)\n"
+            "│  ├ 🎵 TikTok (Filigransız)\n"
+            "│  ├ 📸 Instagram (Reels & Hikayeler)\n"
+            "│  └ 🎧 Yüksek Kalite MP3 Ses\n"
+            "│\n"
+            "╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\n\n"
+            "⚙️ <b>Lütfen video kalitesini seçin:</b>"
         ),
         "need_sub": (
-            "⚠️ <b>Zorunlu Kanal Aboneliği!</b>\n\n"
-            "🔰 Ücretsiz indirme hizmetinden yararlanmak için lütfen kanalımıza katılın ve ardından aşağıdaki doğrulama butonuna basın 👇"
+            "╭━━━ ⚠️ <b>Zorunlu Kanal Aboneliği</b> ⚠️ ━━━╮\n"
+            "│\n"
+            "│ 🔰 Sınırsız indirme yapmak için lütfen\n"
+            "│ önce resmi kanalımıza katılın.\n"
+            "│\n"
+            "╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯"
         ),
         "sub_btn": "📢 Resmi Kanalımız",
         "check_sub": "🔄 Aboneliği Doğrula",
         "checking": "🔍 <b>Bağlantı analiz ediliyor...</b> ⏳\n\n<code>[░░░░░░░░░░░░░░░░░░░░] 0%</code>",
         "downloading": "📥 <b>İçerik sunucuya indiriliyor...</b> 🚀\n\n<code>[{}] {}%</code>",
         "uploading": "📤 <b>Dosya size gönderiliyor...</b> ⚡️\n\n<code>[████████████████████] 100%</code>",
-        "failed": "❌ <b>İndirme Başarısız!</b>\nBağlantının geçerli ve herkese açık olduğundan emin olun.",
-        "verified": "🎉 <b>Abonelik Doğrulandı!</b>\n\n🔗 Artık indirmek istediğiniz bağlantıyı gönderebilirsiniz.",
+        "failed": "❌ <b>İndirme Başarısız!</b>\nBağlantının geçerli olduğundan emin olun.",
+        "verified": "🎉 <b>Abonelik Doğrulandı!</b>\n\n🔗 Bağlantıyı hemen gönderebilirsiniz.",
         "not_subbed": "🚫 Henüz kanala katılmadınız!",
-        "quality_selected": "🎯 <b>Seçilen Kalite:</b> <code>{}</code>\n\n📥 <b>Şimdi medya bağlantısını gönderin.</b>",
+        "quality_selected": "🎯 <b>Seçilen Kalite:</b> <code>{}</code>\n\n📥 <b>Medya bağlantısını gönderin.</b>",
         "uploader": "Yayıncı",
         "duration": "Süre",
         "platform": "Platform",
         "size": "Boyut",
         "seconds": "sn",
         "visit_channel": "✨ Resmi Kanalımızı Ziyaret Edin",
-        "choose_lang": "🌐 <b>Arayüz Dilini Seçin / Choose Language:</b>",
+        "choose_lang": "🌐 <b>Arayüz Dilini Seçin:</b>",
         "lang_changed": "✅ <b>Dil başarıyla güncellendi!</b>",
         "best_q": "🔥 En Yüksek Kalite (Otomatik)",
         "audio_only": "🎵 Sadece Ses (MP3 Yüksek Kalite)"
     },
     "ru": {
         "welcome": (
-            "💎 <b>ULTRA MEDIA DOWNLOADER</b> 💎\n"
-            "━━━ 🚀 <b>Умная система скачивания</b> ━━━\n\n"
-            "✨ <b>Добро пожаловать в быстрый загрузчик!</b>\n"
-            "🌀 <b>Поддерживаемые сервисы:</b> YouTube, TikTok, Instagram...\n"
-            "🎧 <b>Извлечение аудио:</b> Высокое качество MP3 320kbps\n\n"
-            "⚙️ <b>Выберите желаемое качество видео:</b>"
+            "╭━━━ 💎 <b>ULTRA DOWNLOADER V4</b> 💎 ━━━╮\n"
+            "│\n"
+            "├── ⚡️ <b>Добро пожаловать в быстрый загрузчик!</b>\n"
+            "│\n"
+            "├── 🌟 <b>Поддерживаемые платформы:</b>\n"
+            "│  ├ 🌀 YouTube (Видео и Shorts)\n"
+            "│  ├ 🎵 TikTok (Без водяного знака)\n"
+            "│  ├ 📸 Instagram (Reels и Истории)\n"
+            "│  └ 🎧 Высокое качество MP3 320kbps\n"
+            "│\n"
+            "╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\n\n"
+            "⚙️ <b>Выберите качество видео:</b>"
         ),
         "need_sub": (
-            "⚠️ <b>Обязательная подписка!</b>\n\n"
-            "🔰 Пожалуйста, подпишитесь на наш канал, чтобы использовать бота, затем нажмите кнопку проверки ниже 👇"
+            "╭━━━ ⚠️ <b>Обязательная подписка</b> ⚠️ ━━━╮\n"
+            "│\n"
+            "│ 🔰 Пожалуйста, подпишитесь на наш\n"
+            "│ канал, чтобы разблокировать функции.\n"
+            "│\n"
+            "╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯"
         ),
         "sub_btn": "📢 Официальный канал",
         "check_sub": "🔄 Проверить подписку",
         "checking": "🔍 <b>Анализ ссылки и обход ограничений...</b> ⏳\n\n<code>[░░░░░░░░░░░░░░░░░░░░] 0%</code>",
         "downloading": "📥 <b>Скачивание файла на сервер...</b> 🚀\n\n<code>[{}] {}%</code>",
         "uploading": "📤 <b>Отправка файла вам...</b> ⚡️\n\n<code>[████████████████████] 100%</code>",
-        "failed": "❌ <b>Ошибка скачивания!</b>\nУбедитесь, что ссылка правильная и открытая.",
-        "verified": "🎉 <b>Успешно активировано!</b>\n\n🔗 Отправьте ссылку на видео для скачивания.",
-        "not_subbed": "🚫 Вы еще не подписались на канал!",
+        "failed": "❌ <b>Ошибка скачивания!</b>\nПроверьте правильность ссылки.",
+        "verified": "🎉 <b>Успешно активировано!</b>\n\n🔗 Отправьте ссылку на видео.",
+        "not_subbed": "🚫 Вы еще не подписались!",
         "quality_selected": "🎯 <b>Выбранное качество:</b> <code>{}</code>\n\n📥 <b>Отправьте ссылку прямо сейчас.</b>",
         "uploader": "Автор",
         "duration": "Длительность",
@@ -218,7 +258,7 @@ TEXT = {
 }
 
 # ==========================================
-# 4. دالة شريط التقدم الوهمي المتدرج (Progress Bar)
+# 4. دالة شريط التقدم المتدرج (Progress Bar)
 # ==========================================
 def make_progress_bar(percent: int) -> str:
     total_blocks = 20
@@ -227,7 +267,7 @@ def make_progress_bar(percent: int) -> str:
     return bar
 
 # ==========================================
-# 5. إدارة قاعدة البيانات واللغات
+# 5. إدارة قواعد البيانات واللغات
 # ==========================================
 def register_user(user_id: int, default_lang: str = "ar"):
     lang = default_lang if default_lang in TEXT else "ar"
@@ -257,7 +297,7 @@ def clean_downloads():
             pass
 
 # ==========================================
-# 6. لوحات الأزرار القابلة للتكيف
+# 6. الأزرار اللوحية والتفاعلية
 # ==========================================
 async def is_subscribed(context: ContextTypes.DEFAULT_TYPE, user_id: int) -> bool:
     try:
@@ -301,7 +341,7 @@ def channel_button_under_video(lang: str):
     ])
 
 # ==========================================
-# 7. إعدادات yt-dlp الذكية وتجاوز حظر الخوادم
+# 7. إعدادات yt-dlp للتمويه وتجاوز القيود
 # ==========================================
 def build_ydl_opts(output: str, quality: str):
     common_opts = {
@@ -351,7 +391,7 @@ def build_ydl_opts(output: str, quality: str):
     return common_opts
 
 # ==========================================
-# 8. الأوامر البرمجية ومعالجة الأحداث
+# 8. معالجة الأوامر والردود
 # ==========================================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -419,7 +459,7 @@ async def lang_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text(TEXT[selected_lang]["lang_changed"], parse_mode="HTML")
 
 # ==========================================
-# 9. محرك التحميل مع شريط تقدم وهمي وتفاعلي
+# 9. محرك التحميل التفاعلي
 # ==========================================
 async def handle_media_download(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
@@ -449,7 +489,6 @@ async def handle_media_download(update: Update, context: ContextTypes.DEFAULT_TY
     quality = user_quality.get(user.id, "best")
     output = str(DOWNLOAD_DIR / f"{user.id}_{int(time.time())}_%(title)s.%(ext)s")
 
-    # تشغيل التحميل في الخلفية مع شريط التقدم التفاعلي
     loop = asyncio.get_running_loop()
 
     def worker():
@@ -471,7 +510,7 @@ async def handle_media_download(update: Update, context: ContextTypes.DEFAULT_TY
 
     download_task = loop.run_in_executor(None, worker)
 
-    # محاكاة شريط التقدم الحركي
+    # حلقة شريط التقدم الحركي
     progress_steps = [15, 35, 60, 85]
     for step in progress_steps:
         if download_task.done():
@@ -494,7 +533,6 @@ async def handle_media_download(update: Update, context: ContextTypes.DEFAULT_TY
         return
 
     try:
-        # إظهار شريط التقدم مكتمل 100% وإشعار الإرسال
         await status.edit_text(TEXT[lang]["uploading"], parse_mode="HTML")
 
         title = info.get("title", "Media File")
@@ -544,14 +582,14 @@ async def handle_media_download(update: Update, context: ContextTypes.DEFAULT_TY
         )
 
 # ==========================================
-# 10. لوحة التحكم والإذاعة (Admin)
+# 10. أوامر لوحة تحكم المسؤول (Admin)
 # ==========================================
 async def users_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         return
     CURSOR.execute("SELECT COUNT(*) FROM users")
     total = CURSOR.fetchone()[0]
-    await update.message.reply_text(f"👥 <b>عدد أفراد البوت:</b> <code>{total}</code>", parse_mode="HTML")
+    await update.message.reply_text(f"👥 <b>إجمالي مستخدمي البوت:</b> <code>{total}</code>", parse_mode="HTML")
 
 async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
@@ -559,10 +597,10 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     CURSOR.execute("SELECT COUNT(*) FROM users")
     total = CURSOR.fetchone()[0]
     text = (
-        "📊 <b>إحصائيات الأداء الكلي</b>\n"
+        "📊 <b>إحصائيات النظام الكلية</b>\n"
         "━━━━━━━━━━━━━━━━━━━\n"
-        f"👥 <b>المستخدمون:</b> {total}\n"
-        f"📥 <b>إجمالي عمليات التحميل:</b> {downloads_count}"
+        f"👥 <b>عدد المستخدمين:</b> {total}\n"
+        f"📥 <b>إجمالي التحميلات الناجحة:</b> {downloads_count}"
     )
     await update.message.reply_text(text, parse_mode="HTML")
 
@@ -570,7 +608,7 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         return
     broadcast_mode[update.effective_user.id] = True
-    await update.message.reply_text("📢 <b>أرسل نص الرسالة لإذاعتها لجميع المستخدمين:</b>", parse_mode="HTML")
+    await update.message.reply_text("📢 <b>أرسل الرسالة المطلوبة لإذاعتها للجميع:</b>", parse_mode="HTML")
 
 async def receive_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
@@ -581,7 +619,7 @@ async def receive_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     users = CURSOR.fetchall()
 
     sent, failed = 0, 0
-    msg = await update.message.reply_text("🚀 <b>جاري إرسال الإذاعة الجماعية...</b>", parse_mode="HTML")
+    msg = await update.message.reply_text("🚀 <b>جاري إرسال الإذاعة...</b>", parse_mode="HTML")
 
     for user in users:
         try:
@@ -597,7 +635,7 @@ async def receive_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 # ==========================================
-# 11. التشغيل الرئيسي
+# 11. نقطة الانطلاق التشغيلية
 # ==========================================
 def main():
     clean_downloads()
@@ -617,7 +655,7 @@ def main():
 
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_media_download))
 
-    print("🚀 Bot deployed and listening 24/7...")
+    print("🚀 Ultra Bot V4 active and listening 24/7...")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
