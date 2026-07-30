@@ -2,6 +2,7 @@ import os
 import subprocess
 import sys
 import time
+import traceback
 
 # 📦 التثبيت والتحقق التلقائي من المكتبات المطلوبة
 try:
@@ -40,7 +41,7 @@ MESSAGES = {
         ],
         'upload_status': "📤 <i>جاري رفع الفيديو إلى تيليجرام...</i>",
         'success': "✅ <b>تم تحميل الفيديو بنجاح!</b>",
-        'err_download': "❌ <b>عذراً، حظر الخادم رابط يوتيوب هذا! أرسل رابط تيك توك أو حاول لاحقاً.</b>",
+        'err_download': "❌ <b>عذراً، حدث خطأ أثناء التحميل!</b>",
         'title': "العنوان",
         'author': "الناشر",
         'duration': "المدة",
@@ -64,7 +65,7 @@ MESSAGES = {
         ],
         'upload_status': "📤 <i>Uploading video to Telegram...</i>",
         'success': "✅ <b>Video downloaded successfully!</b>",
-        'err_download': "❌ <b>Download failed. YouTube blocked this cloud IP. Try TikTok or Instagram links.</b>",
+        'err_download': "❌ <b>An error occurred during download!</b>",
         'title': "Title",
         'author': "Author",
         'duration': "Duration",
@@ -88,7 +89,7 @@ MESSAGES = {
         ],
         'upload_status': "📤 <i>Video yükleniyor...</i>",
         'success': "✅ <b>Video başarıyla indirildi!</b>",
-        'err_download': "❌ <b>İndirme başarısız oldu. Lütfen başka bir bağlantı deneyin.</b>",
+        'err_download': "❌ <b>İndirme sırasında bir hata oluştu!</b>",
         'title': "Başlık",
         'author': "Yayıncı",
         'duration': "Süre",
@@ -140,7 +141,7 @@ def set_language(call):
     bot.answer_callback_query(call.id, confirm_text[lang_code])
     bot.edit_message_text(confirm_text[lang_code], call.message.chat.id, call.message.message_id)
 
-# 🎬 معالجة وتحميل الفيديو لتخطي حظر Cloud IP
+# 🎬 معالجة وتحميل الفيديو
 @bot.message_handler(func=lambda message: message.text and ('http://' in message.text or 'https://' in message.text))
 def handle_download(message):
     user_id = message.from_user.id
@@ -169,7 +170,6 @@ def handle_download(message):
     
     output_filename = f"vid_{user_id}_{int(time.time())}.mp4"
 
-    # ⚙️ إعدادات تخطي حظر يوتيوب عبر المحاكاة لـ Android Player
     ydl_opts = {
         'format': 'b[ext=mp4]/best[ext=mp4]/best',
         'outtmpl': output_filename,
@@ -179,7 +179,7 @@ def handle_download(message):
         'geo_bypass': True,
         'extractor_args': {
             'youtube': {
-                'player_client': ['android', 'web'], # التظاهر بالطلب من تطبيق أندرويد لتفادي الحظر
+                'player_client': ['android', 'web'],
             }
         },
         'user_agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36'
@@ -232,16 +232,18 @@ def handle_download(message):
         bot.delete_message(chat_id, msg.message_id)
 
     except Exception as e:
-        print(f"❌ تفاصيل الخطأ في السيرفر: {e}")
-        bot.edit_message_text(f"{rtl}{txt.get('err_download', 'Error')}", chat_id, msg.message_id, parse_mode='HTML')
+        traceback.print_exc()
+        print(repr(e))
+        bot.send_message(chat_id, f"DEBUG:\n{repr(e)}")
 
     finally:
         if os.path.exists(output_filename):
             os.remove(output_filename)
 
 if __name__ == "__main__":
-    print("⚡ البوت جاهز ومحدث لتخطي حظر السيرفرات...")
+    print("⚡ البوت يعمل بنجاح مع نمط تصحيح الأخطاء (DEBUG)...")
     try:
         bot.infinity_polling(timeout=15, long_polling_timeout=5)
     except Exception as e:
         print(f"\n❌ خطأ تشغيل:\n{e}\n")
+ 
