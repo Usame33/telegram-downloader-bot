@@ -2,8 +2,8 @@ import time
 import telebot
 from telebot import types
 
-# 🔑 توكين البوت الخاص بك
-BOT_TOKEN = "8629100412:AAG-7CUHEYn3rc5DwQHyCFRTBBP4X8fk0FY"
+# 🔑 توكين البوت الجديد الخاص بك
+BOT_TOKEN = "8629100412:AAGvnlwDHKjXJUTET5lsfW7zOYZq5ycyrBo"
 
 # 📢 معرف القناة الرسمية للاشتراك الإجباري (يرجى رفع البوت مشرفاً في القناة)
 CHANNEL_USERNAME = "@wanasatt"
@@ -216,5 +216,9 @@ def handle_video_request(message):
 
     bot.send_message(chat_id, caption, parse_mode='HTML', reply_markup=markup)
 
-print("⚡ البوت يعمل الآن بالتوكين الجديد...")
-bot.infinity_polling()
+if __name__ == "__main__":
+    print("⚡ البوت يعمل الآن بالتوكين الجديد...")
+    try:
+        bot.infinity_polling(timeout=10, long_polling_timeout=5)
+    except Exception as e:
+        print(f"\n❌ حدث خطأ أدى لتوقف البوت:\n{e}\n")
