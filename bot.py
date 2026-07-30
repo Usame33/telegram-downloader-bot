@@ -1,22 +1,207 @@
-import os
+import asyncio
 import logging
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import (
-    ApplicationBuilder, CommandHandler, CallbackQueryHandler,
-    MessageHandler, filters, ContextTypes
-)
+import os
+from datetime import datetime
+from pathlib import Path
+
+from aiogram import Bot, Dispatcher, F, Router
+from aiogram.client.default import DefaultBotProperties
+from aiogram.enums import ParseMode
+from aiogram.filters import Command
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+from dotenv import load_dotenv
 import yt_dlp
 
-# البيانات المحدثة بناءً على طلبك
-BOT_TOKEN = "8629100412:AAFzVLA9uur4pIVX0oHBs8N4fqB6nz3ub-k"
-CHANNEL_ID = "@wanasatt"  # معرف قناتك
-CHANNEL_URL = "https://t.me/wanasatt"
-BOT_URL = "https://t.me/Ussame_bot"
+load_dotenv()
 
-# إعدادات النصوص بأربع لغات (العربية مع علم سوريا 🇸🇾)
-TEXTS = {
-    'ar': {
-        'select_lang': "مرحباً بك في بوت التحميل الشامل! 🎥\nيرجى اختيار اللغة المناسبة:",
+# ====================== CONFIG ======================
+TOKEN = "8629100412:AAFzVLA9uur4pIVX0oHBs8N4fqB6nz3ub-k"  # ضع توكنك هنا
+CHANNEL_ID = "@wanasatt"          # معرف القناة
+CHANNEL_URL = "https://t.me/wanasatt"
+
+DOWNLOAD_PATH = Path("downloads")
+DOWNLOAD_PATH.mkdir(exist_ok=True)
+
+bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+dp = Dispatcher()
+router = Router()
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# ====================== TRANSLATIONS ======================
+translations = {
+    "ar": {
+        "start": "🌟 مرحباً بك في بوت التحميل الاحترافي!\n\nأرسل الرابط لتحميل الفيديو.",
+        "subscribe_first": "⚠️ يجب عليك الاشتراك في القناة أولاً لاستخدام البوت.",
+        "subscribe": "اشترك في القناة",
+        "processing": "⏳ جاري التحليل...",
+        "downloading": "⬇️ جاري التحميل...",
+        "uploading": "⬆️ جاري الرفع...",
+        "success": "✅ تم التحميل بنجاح!",
+        "error": "❌ حدث خطأ، حاول مرة أخرى.",
+    },
+    "tr": {
+        "start": "🌟 Profesyonel İndirme Botuna Hoş Geldiniz!\n\nVideoyu indirmek için linki gönderin.",
+        "subscribe_first": "⚠️ Botu kullanmak için önce kanala abone olmalısınız.",
+        "subscribe": "Kanala Abone Ol",
+        "processing": "⏳ Analiz ediliyor...",
+        "downloading": "⬇️ İndiriliyor...",
+        "uploading": "⬆️ Yükleniyor...",
+        "success": "✅ Başarıyla indirildi!",
+        "error": "❌ Hata oluştu, tekrar deneyin.",
+    },
+    "en": {
+        "start": "🌟 Welcome to the Professional Video Downloader Bot!\n\nSend the link to download.",
+        "subscribe_first": "⚠️ You must subscribe to the channel first to use the bot.",
+        "subscribe": "Subscribe to Channel",
+        "processing": "⏳ Analyzing...",
+        "downloading": "⬇️ Downloading...",
+        "uploading": "⬆️ Uploading...",
+        "success": "✅ Downloaded successfully!",
+        "error": "❌ An error occurred, please try again.",
+    },
+    "ru": {
+        "start": "🌟 Добро пожаловать в профессионального бота для скачивания видео!\n\nОтправьте ссылку для скачивания.",
+        "subscribe_first": "⚠️ Чтобы использовать бота, сначала подпишитесь на канал.",
+        "subscribe": "Подписаться на канал",
+        "processing": "⏳ Анализ...",
+        "downloading": "⬇️ Скачивание...",
+        "uploading": "⬆️ Загрузка...",
+        "success": "✅ Успешно скачано!",
+        "error": "❌ Произошла ошибка, попробуйте снова.",
+    }
+}
+
+def get_lang(user_lang: str):
+    lang_map = {"ar": "ar", "tr": "tr", "en": "en", "ru": "ru"}
+    return lang_map.get(user_lang, "ar")  # العربية افتراضي
+
+# ====================== CHECK SUBSCRIPTION ======================
+async def is_subscribed(user_id: int) -> bool:
+    try:
+        member = await bot.get_chat_member(CHANNEL_ID, user_id)
+        return member.status in ["member", "administrator", "creator"]
+    except:
+        return False
+
+# ====================== KEYBOARDS ======================
+def subscribe_keyboard():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📢 اشترك الآن", url=CHANNEL_URL)]
+    ])
+
+def subscribe_keyboard_multi(lang: str):
+    text = translations[lang]["subscribe"]
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=text, url=CHANNEL_URL)]
+    ])
+
+# ====================== HANDLERS ======================
+@router.message(Command("start"))
+async def start(message: Message):
+    lang = get_lang(message.from_user.language_code)
+    await message.answer(
+        translations[lang]["start"],
+        reply_markup=subscribe_keyboard()
+    )
+
+
+@router.message(F.text)
+async def handle_url(message: Message):
+    lang = get_lang(message.from_user.language_code)
+
+    if not await is_subscribed(message.from_user.id):
+        return await message.answer(
+            translations[lang]["subscribe_first"],
+            reply_markup=subscribe_keyboard_multi(lang)
+        )
+
+    url = re.findall(r'https?://[^\s]+', message.text)
+    if not url:
+        return
+
+    url = url[0]
+    status_msg = await message.answer(f"{translations[lang]['processing']}")
+
+    try:
+        # استخراج المعلومات
+        with yt_dlp.YoutubeDL({'quiet': True}) as ydl:
+            info = ydl.extract_info(url, download=False)
+
+        title = info.get('title', 'Video')[:100]
+        video_id = str(hash(url))[-10:]
+
+        bot.video_data = getattr(bot, 'video_data', {})
+        bot.video_data[video_id] = {"url": url, "title": title, "lang": lang, "user_id": message.from_user.id}
+
+        await status_msg.edit_text(
+            f"🎥 <b>{title}</b>\n\n"
+            f"اختر الجودة:",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="🎥 1080p", callback_data=f"q_{video_id}_1080")],
+                [InlineKeyboardButton(text="🎥 720p", callback_data=f"q_{video_id}_720")],
+                [InlineKeyboardButton(text="🎥 480p", callback_data=f"q_{video_id}_480")],
+                [InlineKeyboardButton(text="🎵 MP3", callback_data=f"q_{video_id}_audio")]
+            ])
+        )
+
+    except Exception as e:
+        await status_msg.edit_text(translations[lang]["error"])
+
+
+@router.callback_query(F.data.startswith("q_"))
+async def quality_callback(callback: CallbackQuery):
+    _, video_id, quality = callback.data.split("_")
+    data = getattr(bot, 'video_data', {}).get(video_id)
+    if not data:
+        return await callback.answer("انتهت الصلاحية", show_alert=True)
+
+    lang = data["lang"]
+    await callback.message.edit_text(translations[lang]["downloading"])
+
+    try:
+        url = data["url"]
+        title = data["title"]
+        safe_title = "".join(c if c.isalnum() else "_" for c in title)[:80]
+        output_path = str(DOWNLOAD_PATH / f"{safe_title}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.%(ext)s")
+
+        format_str = "bestaudio/best" if quality == "audio" else f"bestvideo[height<={quality}]+bestaudio/best"
+
+        ydl_opts = {'format': format_str, 'outtmpl': output_path, 'merge_output_format': 'mp4'}
+        
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
+
+        files = list(DOWNLOAD_PATH.glob(f"{safe_title}*"))
+        video_file = max(files, key=os.path.getsize)
+
+        sub_btn = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text=translations[lang]["subscribe"], url=CHANNEL_URL)]
+        ])
+
+        caption = f"{translations[lang]['success']}\n\n🎬 {title}"
+
+        if quality == "audio":
+            await bot.send_audio(callback.message.chat.id, FSInputFile(video_file), caption=caption, reply_markup=sub_btn)
+        else:
+            await bot.send_video(callback.message.chat.id, FSInputFile(video_file), caption=caption, reply_markup=sub_btn, supports_streaming=True)
+
+        await callback.message.delete()
+        video_file.unlink(missing_ok=True)
+
+    except Exception as e:
+        await callback.message.edit_text(translations[lang]["error"])
+
+
+dp.include_router(router)
+
+async def main():
+    print("🚀 البوت يعمل الآن @Ussame_bot")
+    await dp.start_polling(bot)
+
+if __name__ == "__main__":
+    asyncio.run(main()):",
         'sub_required': "⚠️ عذراً، يجب عليك الاشتراك في قناة البوت أولاً لتتمكن من استخدامه!",
         'check_sub': "🫆 تحقق من الاشتراك",
         'send_link': "✅ أرسل رابط الفيديو الآن (يوتيوب، تيك توك، إنستغرام، فيسبوك...):",
