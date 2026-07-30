@@ -1,4 +1,4 @@
-
+import os
 import asyncio
 import logging
 from threading import Thread
@@ -10,13 +10,13 @@ import yt_dlp
 # إعداد السجلات
 logging.basicConfig(format='%(asctime)s - [%(levelname)s] - %(message)s', level=logging.INFO)
 
-# 🔑 التوكن الجديد الخاص بك
+# 🔑 التوكن والمعلومات الخاصة بك
 TOKEN = "8629100412:AAE3o7PxOhixD91H3yRQtg2MslbCp8k-Mzo"
 CHANNEL_URL = "https://t.me/wanasatt"
 CHANNEL_USERNAME = "@wanasatt"
 
-# متغير عام لتخزين معرف البوت التلقائي
-BOT_USERNAME = ""
+# 🤖 معرف البوت الخاص بك
+BOT_USERNAME = "@Ussame_bot"
 
 # --- 🌐 خادم ويب وهمي لإبقاء Render حياً عبر UptimeRobot ---
 class PingHandler(BaseHTTPRequestHandler):
@@ -34,127 +34,204 @@ def run_web_server():
     server = HTTPServer(('0.0.0.0', port), PingHandler)
     server.serve_forever()
 
-# --- القاموس متعدد اللغات بالتصميم الأنيق ---
+# --- 🌍 نظام اللغات والواجهة الاحترافية ---
 TEXTS = {
     'ar': {
         'welcome': (
-            "🎬 **مرحباً بك في VideoHub Downloader**\n\n"
-            "━━━━━━━━━━━━━━━━━━\n"
-            "⚡ أسرع بوت لتحميل الفيديوهات\n"
-            "🎞️ جودة عالية\n"
-            "🎵 تحويل إلى MP3\n"
-            "🌍 يدعم معظم المنصات\n"
-            "🟢 يعمل 24/7\n"
-            "━━━━━━━━━━━━━━━━━━\n\n"
-            "📎 **أرسل رابط الفيديو وسأتولى الباقي.**"
+            "✨ **مرحباً بك في VideoHub Pro** ✨\n"
+            "─── ･ ｡ﾟ☆: *.☽ .* :☆ﾟ. ───\n\n"
+            "🚀 **أسرع بوت لتحميل الفيديوهات والصوتيات**\n\n"
+            "💎 **المميزات:**\n"
+            " ├ 🎞️ تحميل بأعلى الجودات (HD / SD)\n"
+            " ├ 🎵 تحويل مجاني ومباشر إلى MP3\n"
+            " ├ 🌍 دعم منصات: YouTube, TikTok, Instagram, Twitter...\n"
+            " └ ⚡ خوادم فائقة السرعة تعمل 24/7\n\n"
+            "📌 **كيفية الاستخدام:**\n"
+            "فقط أرسل رابط الفيديو المباشر وسأقوم بالباقي!"
         ),
         'sub_required': (
-            "🔒 **الاشتراك الإجباري**\n\n"
-            "قبل استخدام البوت، يجب الاشتراك في القناة.\n"
-            "اشترك ثم اضغط زر التحقق."
-        ),
-        'sub_btn': "📢 اشترك في القناة",
-        'check_btn': "🫆 التحقق",
-        'channel_btn': "📢 قناتنا الرسمية",
-        'invalid_url': "🤔 **هذا لا يبدو كرابط صحيح!** أرسل رابطاً يبدأ بـ `http` أو `https`.",
-        'analyzing': (
-            "⏳ **جارِ تحليل الرابط...**\n\n"
-            "🔍 التعرف على المنصة...\n"
-            "📥 تجهيز الملف...\n"
-            "🚀 بدء التحميل..."
-        ),
-        'error_fetch': "💥 **عذراً! تعذر تحليل الرابط.** تأكد من أن المقطع عام وليس خاصاً.",
-        'mp3_btn': "🎵 تحويل إلى MP3",
-        'card_title': (
-            "📌 **تفاصيل الفيديو:**\n\n"
-            "🎬 **اسم الفيديو:**\n`{title}`\n\n"
-            "👤 **الناشر:** {uploader}\n"
-            "⏱️ **المدة:** {duration}\n\n"
-            "👇 **اختر الجودة أو الصيغة المطلوبة:**"
-        ),
-        'downloading_vid': "⚙️ **جارِ تحميل وتجهيز الفيديو...** ⏳",
-        'downloading_aud': "🎶 **جارِ تحويل الفيديو إلى MP3...** ⏳",
-        'uploading': "🚀 **جارِ رفع الملف إلى تليجرام...** 📡",
-        'success_vid': (
-            "✅ **تم التحميل بنجاح.**\n\n"
+            "🔒 **اشتراك إجباري في القناة**\n"
             "━━━━━━━━━━━━━━━━━━\n"
-            "🎬 **اسم الفيديو:**\n{title}\n\n"
+            "لاستخدام البوت والاستمتاع بالتحميل السريع، يرجى الاشتراك في قناتنا الرسمية أولاً.\n\n"
+            "👇 اشترك الآن ثم اضغط على زر **التحقق**."
+        ),
+        'sub_btn': "📢 اشتراك في القناة",
+        'check_btn': "🔄 التحقق من الاشتراك",
+        'channel_btn': "📢 القناة الرسمية",
+        'lang_btn': "🌐 تغيير اللغة / Language",
+        'select_lang': "🌐 **اختر لغتك المفضلة / Select Your Language:**",
+        'lang_changed': "✅ تم تغيير اللغة إلى العربية بنجاح!",
+        'invalid_url': "⚠️ **رابط غير صالح!** يرجى إرسال رابط صحيح يبدأ بـ `http://` أو `https://`",
+        'analyzing': (
+            "🔄 **جارِ معالجة الرابط...**\n"
+            " ├ 🔍 فحص المنصة...\n"
+            " └ ⚙️ جلب الجودات المتاحة..."
+        ),
+        'error_fetch': "❌ **تعذر تحليل الرابط!** تأكد من أن الفيديو عام وليس خاصاً أو محذوفاً.",
+        'mp3_btn': "🎵 تحويل الصوت (MP3)",
+        'card_title': (
+            "🎬 **تفاصيل المقطع:**\n"
+            "━━━━━━━━━━━━━━━━━━\n"
+            "📌 **العنوان:**\n`{title}`\n\n"
+            "👤 **الناشر:** `{uploader}`\n"
+            "⏱️ **المدة:** `{duration}`\n"
+            "🌐 **المنصة:** `{extractor}`\n"
+            "━━━━━━━━━━━━━━━━━━\n"
+            "👇 **اختر صيغة أو جودة التحميل:**"
+        ),
+        'downloading_vid': "📥 **جارِ تحميل وتجهيز الفيديو...** ⏳",
+        'downloading_aud': "🎶 **جارِ استخراج وتحويل الصوت...** ⏳",
+        'uploading': "🚀 **جارِ رفع الملف إليك...** 📡",
+        'success_vid': (
+            "✅ **تم التحميل بنجاح!**\n"
+            "━━━━━━━━━━━━━━━━━━\n"
+            "🎬 **العنوان:** {title}\n"
             "👤 **الناشر:** {uploader}\n"
-            "🌍 **المنصة:** {extractor}\n"
             "⏱️ **المدة:** {duration}\n"
             "🎞️ **الجودة:** {quality}\n\n"
-            "🤖 **تم التحميل بواسطة**\n{bot_link}\n\n"
-            "شكراً لاستخدامك البوت ❤️\n"
+            "🤖 **البوت:** [Ussame_bot](https://t.me/Ussame_bot)\n"
+            "📢 **القناة:** [وناسة](https://t.me/wanasatt)\n"
             "━━━━━━━━━━━━━━━━━━"
         ),
-        'err_dl': "❌ **تعذر التحميل!** قد يكون الحجم كبيراً جداً (أكثر من 50 ميجابايت).",
-        'session_exp': "⌛ **انتهت صلاحية الجلسة!** يرجى إعادة إرسال الرابط.",
-        'verified': "🎉 **تم التحقق بنجاح!** أرسل أي رابط الآن للبدء. 🚀",
-        'not_verified': "❌ لم تشترك في القناة بعد! اشترك ثم اضغط زر التحقق."
+        'err_dl': "❌ **فشل التحميل!** قد يتجاوز حجم الفيديو الحد المسموح (50 ميجابايت).",
+        'session_exp': "⚠️ **انتهت الجلسة!** أرسل الرابط مرة أخرى.",
+        'verified': "🎉 **تم التحقق بنجاح!** يمكنك الآن إرسال الروابط للتحميل. 🚀",
+        'not_verified': "❌ لم تشترك بالقناة بعد! اشترك أولاً ثم حاول مجدداً."
     },
     'en': {
         'welcome': (
-            "🎬 **Welcome to VideoHub Downloader**\n\n"
-            "━━━━━━━━━━━━━━━━━━\n"
-            "⚡ Fastest Video Downloader\n"
-            "🎞️ High Quality\n"
-            "🎵 Convert to MP3\n"
-            "🌍 Supports Most Platforms\n"
-            "🟢 Online 24/7\n"
-            "━━━━━━━━━━━━━━━━━━\n\n"
-            "📎 **Send the video link and I'll do the rest.**"
+            "✨ **Welcome to VideoHub Pro** ✨\n"
+            "─── ･ ｡ﾟ☆: *.☽ .* :☆ﾟ. ───\n\n"
+            "🚀 **Fastest Video & Audio Downloader**\n\n"
+            "💎 **Features:**\n"
+            " ├ 🎞️ High Quality Downloads (HD / SD)\n"
+            " ├ 🎵 Free MP3 Audio Conversion\n"
+            " ├ 🌍 Supports: YouTube, TikTok, Instagram, Twitter...\n"
+            " └ ⚡ Ultra-fast servers 24/7\n\n"
+            "📌 **How to use:**\n"
+            "Just send any video link and I'll handle the rest!"
         ),
         'sub_required': (
-            "🔒 **Subscription Required**\n\n"
-            "Please join our channel before using the bot.\n"
-            "Subscribe then click Verify."
+            "🔒 **Channel Subscription Required**\n"
+            "━━━━━━━━━━━━━━━━━━\n"
+            "To use this bot, please subscribe to our official channel first.\n\n"
+            "👇 Join now then click **Verify**."
         ),
-        'sub_btn': "📢 Subscribe to Channel",
-        'check_btn': "🫆 Verify",
+        'sub_btn': "📢 Join Channel",
+        'check_btn': "🔄 Verify Subscription",
         'channel_btn': "📢 Official Channel",
-        'invalid_url': "🤔 **Invalid link!** Send a link starting with `http` or `https`.",
+        'lang_btn': "🌐 Language / اللغة",
+        'select_lang': "🌐 **Select Your Language / اختر لغتك:**",
+        'lang_changed': "✅ Language successfully set to English!",
+        'invalid_url': "⚠️ **Invalid URL!** Please send a valid link starting with `http://` or `https://`",
         'analyzing': (
-            "⏳ **Analyzing link...**\n\n"
-            "🔍 Identifying platform...\n"
-            "📥 Preparing file...\n"
-            "🚀 Starting download..."
+            "🔄 **Processing link...**\n"
+            " ├ 🔍 Checking platform...\n"
+            " └ ⚙️ Fetching available qualities..."
         ),
-        'error_fetch': "💥 **Failed to analyze link.** Make sure the video is public.",
+        'error_fetch': "❌ **Failed to process link!** Make sure the video is public and valid.",
         'mp3_btn': "🎵 Convert to MP3",
         'card_title': (
-            "📌 **Video Details:**\n\n"
-            "🎬 **Title:**\n`{title}`\n\n"
-            "👤 **Uploader:** {uploader}\n"
-            "⏱️ **Duration:** {duration}\n\n"
-            "👇 **Choose quality or format:**"
-        ),
-        'downloading_vid': "⚙️ **Downloading video...** ⏳",
-        'downloading_aud': "🎶 **Converting to MP3...** ⏳",
-        'uploading': "🚀 **Uploading to Telegram...** 📡",
-        'success_vid': (
-            "✅ **Downloaded Successfully.**\n\n"
+            "🎬 **Video Details:**\n"
             "━━━━━━━━━━━━━━━━━━\n"
-            "🎬 **Title:**\n{title}\n\n"
+            "📌 **Title:**\n`{title}`\n\n"
+            "👤 **Uploader:** `{uploader}`\n"
+            "⏱️ **Duration:** `{duration}`\n"
+            "🌐 **Platform:** `{extractor}`\n"
+            "━━━━━━━━━━━━━━━━━━\n"
+            "👇 **Choose download format or quality:**"
+        ),
+        'downloading_vid': "📥 **Downloading & preparing video...** ⏳",
+        'downloading_aud': "🎶 **Extracting & converting audio...** ⏳",
+        'uploading': "🚀 **Uploading file to Telegram...** 📡",
+        'success_vid': (
+            "✅ **Downloaded Successfully!**\n"
+            "━━━━━━━━━━━━━━━━━━\n"
+            "🎬 **Title:** {title}\n"
             "👤 **Uploader:** {uploader}\n"
-            "🌍 **Platform:** {extractor}\n"
             "⏱️ **Duration:** {duration}\n"
             "🎞️ **Quality:** {quality}\n\n"
-            "🤖 **Downloaded by**\n{bot_link}\n\n"
-            "Thanks for using our bot ❤️\n"
+            "🤖 **Bot:** [Ussame_bot](https://t.me/Ussame_bot)\n"
+            "📢 **Channel:** [Wanasatt](https://t.me/wanasatt)\n"
             "━━━━━━━━━━━━━━━━━━"
         ),
-        'err_dl': "❌ **Download failed!** File size may exceed 50MB.",
-        'session_exp': "⌛ **Session expired!** Send the link again.",
-        'verified': "🎉 **Verified successfully!** Send a link to start. 🚀",
-        'not_verified': "❌ You haven't subscribed yet! Please join the channel first."
+        'err_dl': "❌ **Download failed!** File size may exceed 50MB limit.",
+        'session_exp': "⚠️ **Session expired!** Please send the link again.",
+        'verified': "🎉 **Verified successfully!** Send any link now to start. 🚀",
+        'not_verified': "❌ You haven't subscribed yet! Join the channel and try again."
+    },
+    'es': {
+        'welcome': "✨ **Bienvenido a VideoHub Pro** ✨\n\n🚀 **Descargador rápido**",
+        'sub_required': "🔒 **Suscripción requerida**\nPor favor únete al canal.",
+        'sub_btn': "📢 Unirse al Canal",
+        'check_btn': "🔄 Verificar",
+        'channel_btn': "📢 Canal Oficial",
+        'lang_btn': "🌐 Idioma",
+        'select_lang': "🌐 **Selecciona tu idioma:**",
+        'lang_changed': "✅ ¡Idioma cambiado a Español!",
+        'invalid_url': "⚠️ **¡Enlace no válido!**",
+        'analyzing': "🔄 **Procesando...**",
+        'error_fetch': "❌ **Error al procesar**",
+        'mp3_btn': "🎵 Convertir a MP3",
+        'card_title': "🎬 **Detalles:**\n\n📌 `{title}`",
+        'downloading_vid': "📥 **Descargando...**",
+        'downloading_aud': "🎶 **Convirtiendo...**",
+        'uploading': "🚀 **Subiendo...**",
+        'success_vid': (
+            "✅ **¡Descargado con éxito!**\n"
+            "━━━━━━━━━━━━━━━━━━\n"
+            "🎬 **Título:** {title}\n"
+            "🎞️ **Calidad:** {quality}\n\n"
+            "🤖 **Por:** [Ussame_bot](https://t.me/Ussame_bot)\n"
+            "📢 **Canal:** [Wanasatt](https://t.me/wanasatt)\n"
+            "━━━━━━━━━━━━━━━━━━"
+        ),
+        'err_dl': "❌ **Error de descarga**",
+        'session_exp': "⚠️ **Sesión expirada**",
+        'verified': "🎉 **Verificado**",
+        'not_verified': "❌ No te has suscrito"
+    },
+    'fr': {
+        'welcome': "✨ **Bienvenue sur VideoHub Pro** ✨\n\n🚀 **Téléchargeur rapide**",
+        'sub_required': "🔒 **Abonnement Requis**",
+        'sub_btn': "📢 Rejoindre la chaîne",
+        'check_btn': "🔄 Vérifier",
+        'channel_btn': "📢 Chaîne Officielle",
+        'lang_btn': "🌐 Langue",
+        'select_lang': "🌐 **Choisissez votre langue:**",
+        'lang_changed': "✅ Langue changée en Français!",
+        'invalid_url': "⚠️ **Lien invalide!**",
+        'analyzing': "🔄 **Traitement...**",
+        'error_fetch': "❌ **Échec!**",
+        'mp3_btn': "🎵 Convertir en MP3",
+        'card_title': "🎬 **Détails:**\n\n📌 `{title}`",
+        'downloading_vid': "📥 **Téléchargement...**",
+        'downloading_aud': "🎶 **Conversion MP3...**",
+        'uploading': "🚀 **Envoi...**",
+        'success_vid': (
+            "✅ **Téléchargé avec succès!**\n"
+            "━━━━━━━━━━━━━━━━━━\n"
+            "🎬 **Titre:** {title}\n"
+            "🎞️ **Qualité:** {quality}\n\n"
+            "🤖 **Via:** [Ussame_bot](https://t.me/Ussame_bot)\n"
+            "📢 **Chaîne:** [Wanasatt](https://t.me/wanasatt)\n"
+            "━━━━━━━━━━━━━━━━━━"
+        ),
+        'err_dl': "❌ **Échec!**",
+        'session_exp': "⚠️ **Session expirée!**",
+        'verified': "🎉 **Vérifié avec succès!**",
+        'not_verified': "❌ Pas encore abonné."
     }
 }
 
-def get_lang(user_lang_code: str) -> dict:
-    if not user_lang_code:
-        return TEXTS['ar']
-    lang = user_lang_code.lower()[:2]
-    return TEXTS.get(lang, TEXTS['ar'])
+def get_user_lang(user_data: dict, telegram_lang: str) -> str:
+    if 'lang' in user_data:
+        return user_data['lang']
+    if telegram_lang:
+        code = telegram_lang.lower()[:2]
+        if code in TEXTS:
+            return code
+    return 'ar'
 
 async def check_subscription(user_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
     try:
@@ -167,24 +244,40 @@ async def check_subscription(user_id: int, context: ContextTypes.DEFAULT_TYPE) -
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    lang = get_lang(user.language_code)
+    lang_code = get_user_lang(context.user_data, user.language_code)
+    lang = TEXTS[lang_code]
     
     if not await check_subscription(user.id, context):
         keyboard = [
             [InlineKeyboardButton(lang['sub_btn'], url=CHANNEL_URL)],
-            [InlineKeyboardButton(lang['check_btn'], callback_data="check_sub")]
+            [InlineKeyboardButton(lang['check_btn'], callback_data="check_sub")],
+            [InlineKeyboardButton(lang['lang_btn'], callback_data="open_lang")]
         ]
         await update.message.reply_text(lang['sub_required'], reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
         return
 
     keyboard = [
-        [InlineKeyboardButton(lang['channel_btn'], url=CHANNEL_URL)]
+        [InlineKeyboardButton(lang['channel_btn'], url=CHANNEL_URL)],
+        [InlineKeyboardButton(lang['lang_btn'], callback_data="open_lang")]
     ]
     await update.message.reply_text(lang['welcome'], reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
 
+async def show_language_selector(update_or_query, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [
+        [InlineKeyboardButton("🇸🇦 العربية", callback_data="set_lang|ar"), InlineKeyboardButton("🇬🇧 English", callback_data="set_lang|en")],
+        [InlineKeyboardButton("🇪🇸 Español", callback_data="set_lang|es"), InlineKeyboardButton("🇫🇷 Français", callback_data="set_lang|fr")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    if hasattr(update_or_query, 'message') and update_or_query.message:
+        await update_or_query.message.reply_text("🌐 **Select Language / اختر اللغة:**", reply_markup=reply_markup, parse_mode="Markdown")
+    else:
+        await update_or_query.edit_message_text("🌐 **Select Language / اختر اللغة:**", reply_markup=reply_markup, parse_mode="Markdown")
+
 async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    lang = get_lang(user.language_code)
+    lang_code = get_user_lang(context.user_data, user.language_code)
+    lang = TEXTS[lang_code]
     
     if not await check_subscription(user.id, context):
         keyboard = [
@@ -209,10 +302,10 @@ async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     video_id = info.get('id', 'vid')
-    title = info.get('title', 'فيديو بدون عنوان')
-    duration = info.get('duration_string', 'غير معروف')
-    uploader = info.get('uploader', 'غير معروف')
-    extractor = info.get('extractor_key', 'المنصة العامة')
+    title = info.get('title', 'Video')
+    duration = info.get('duration_string', 'N/A')
+    uploader = info.get('uploader', 'Unknown')
+    extractor = info.get('extractor_key', 'Web')
 
     context.user_data[video_id] = {
         'url': url, 
@@ -235,8 +328,8 @@ async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
             format_id = f.get('format_id')
             if height and height not in seen_qualities:
                 seen_qualities.add(height)
-                badge = "✨ High" if height >= 720 else "📱 SD"
-                quality_buttons.append(InlineKeyboardButton(f"🎞️ {height}p ({badge})", callback_data=f"dl_vid|{video_id}|{format_id}|{height}p"))
+                badge = "✨ HD" if height >= 720 else "📱 SD"
+                quality_buttons.append(InlineKeyboardButton(f"🎬 {height}p ({badge})", callback_data=f"dl_vid|{video_id}|{format_id}|{height}p"))
                 if len(quality_buttons) == 2:
                     keyboard.append(quality_buttons)
                     quality_buttons = []
@@ -247,14 +340,15 @@ async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard.append(quality_buttons)
 
     if not seen_qualities:
-        keyboard.append([InlineKeyboardButton("🎞️ أعلى جودة متاحة", callback_data=f"dl_vid|{video_id}|best|HD")])
+        keyboard.append([InlineKeyboardButton("🎬 Best Quality / أعلى جودة", callback_data=f"dl_vid|{video_id}|best|HD")])
 
     keyboard.append([InlineKeyboardButton(lang['channel_btn'], url=CHANNEL_URL)])
 
     card_text = lang['card_title'].format(
-        title=title[:60] + "...",
+        title=title[:50] + "..." if len(title) > 50 else title,
         uploader=uploader,
-        duration=duration
+        duration=duration,
+        extractor=extractor
     )
     await status_msg.edit_text(card_text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
 
@@ -272,9 +366,28 @@ def fetch_video_info(url):
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     user = query.from_user
-    lang = get_lang(user.language_code)
     data = query.data.split("|")
     action = data[0]
+
+    if action == "open_lang":
+        await query.answer()
+        await show_language_selector(query, context)
+        return
+
+    if action == "set_lang":
+        selected_lang = data[1]
+        context.user_data['lang'] = selected_lang
+        lang = TEXTS[selected_lang]
+        await query.answer(lang['lang_changed'], show_alert=True)
+        keyboard = [
+            [InlineKeyboardButton(lang['channel_btn'], url=CHANNEL_URL)],
+            [InlineKeyboardButton(lang['lang_btn'], callback_data="open_lang")]
+        ]
+        await query.edit_message_text(lang['welcome'], reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
+        return
+
+    lang_code = get_user_lang(context.user_data, user.language_code)
+    lang = TEXTS[lang_code]
 
     if action == "check_sub":
         await query.answer()
@@ -297,8 +410,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     url = video_data['url']
     loop = asyncio.get_running_loop()
 
-    bot_link = f"@{BOT_USERNAME}" if BOT_USERNAME else "@Bot"
-
     # 🎬 تحميل فيديو
     if action == "dl_vid":
         await query.answer()
@@ -314,10 +425,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             caption_text = lang['success_vid'].format(
                 title=video_data['title'],
                 uploader=video_data['uploader'],
-                extractor=video_data['extractor'],
                 duration=video_data['duration'],
-                quality=quality,
-                bot_link=bot_link
+                quality=quality
             )
             
             with open(filename, 'rb') as f:
@@ -332,7 +441,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             logging.error(f"Vid Error: {e}")
             await query.message.reply_text(lang['err_dl'])
         finally:
-            if os.path.exists(filename): os.remove(filename)
+            if os.path.exists(filename):
+                os.remove(filename)
 
     # 🎵 تحميل صوت MP3
     elif action == "dl_audio":
@@ -347,10 +457,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             caption_text = lang['success_vid'].format(
                 title=video_data['title'],
                 uploader=video_data['uploader'],
-                extractor=video_data['extractor'],
                 duration=video_data['duration'],
-                quality="MP3 (Audio)",
-                bot_link=bot_link
+                quality="MP3 (Audio)"
             )
             
             with open(filename, 'rb') as f:
@@ -366,7 +474,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             logging.error(f"Audio Error: {e}")
             await query.message.reply_text(lang['err_dl'])
         finally:
-            if os.path.exists(filename): os.remove(filename)
+            if os.path.exists(filename):
+                os.remove(filename)
 
 def download_media(url, format_id, output_filename, is_audio=False):
     ydl_opts = {
@@ -388,24 +497,17 @@ def download_media(url, format_id, output_filename, is_audio=False):
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([url])
 
-async def post_init(application: Application):
-    global BOT_USERNAME
-    bot_info = await application.bot.get_me()
-    BOT_USERNAME = bot_info.username
-    print(f"✅ تم التعرف تلقائياً على معرّف البوت: @{BOT_USERNAME}")
-
 def main():
     Thread(target=run_web_server, daemon=True).start()
 
-    app = Application.builder().token(TOKEN).post_init(post_init).build()
+    app = Application.builder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_url))
     app.add_handler(CallbackQueryHandler(button_callback))
 
-    print("🚀 VideoHub Downloader يعمل الآن مع التوكين الجديد...")
+    print(f"🚀 البوت {BOT_USERNAME} يعمل الآن بنجاح...")
     app.run_polling()
 
 if __name__ == '__main__':
     main()
- os
