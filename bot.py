@@ -18,7 +18,7 @@ except ModuleNotFoundError:
 # 🔑 توكين البوت الخاص بك
 BOT_TOKEN = "8629100412:AAGvnlwDHKjXJUTET5lsfW7zOYZq5ycyrBo"
 
-# 📢 معرف قناتك الرسمية للاشتراك الإجباري (يرجى رفع البوت مشرفاً في القناة)
+# 📢 معرف قناتك الرسمية للاشتراك الإجباري
 CHANNEL_USERNAME = "@wanasatt"
 
 bot = telebot.TeleBot(BOT_TOKEN)
@@ -40,7 +40,7 @@ MESSAGES = {
         ],
         'upload_status': "📤 <i>جاري رفع الفيديو إلى تيليجرام...</i>",
         'success': "✅ <b>تم تحميل الفيديو بنجاح!</b>",
-        'err_download': "❌ <b>عذراً، تعذر تحميل هذا الفيديو. تأكد من صحة الرابط وحاول مجدداً.</b>",
+        'err_download': "❌ <b>عذراً، حظر الخادم رابط يوتيوب هذا! أرسل رابط تيك توك أو حاول لاحقاً.</b>",
         'title': "العنوان",
         'author': "الناشر",
         'duration': "المدة",
@@ -64,7 +64,7 @@ MESSAGES = {
         ],
         'upload_status': "📤 <i>Uploading video to Telegram...</i>",
         'success': "✅ <b>Video downloaded successfully!</b>",
-        'err_download': "❌ <b>Failed to download this video. Please check the link.</b>",
+        'err_download': "❌ <b>Download failed. YouTube blocked this cloud IP. Try TikTok or Instagram links.</b>",
         'title': "Title",
         'author': "Author",
         'duration': "Duration",
@@ -88,7 +88,7 @@ MESSAGES = {
         ],
         'upload_status': "📤 <i>Video yükleniyor...</i>",
         'success': "✅ <b>Video başarıyla indirildi!</b>",
-        'err_download': "❌ <b>Bu video indirilemedi. Lütfen bağlantıyı kontrol edin.</b>",
+        'err_download': "❌ <b>İndirme başarısız oldu. Lütfen başka bir bağlantı deneyin.</b>",
         'title': "Başlık",
         'author': "Yayıncı",
         'duration': "Süre",
@@ -140,7 +140,7 @@ def set_language(call):
     bot.answer_callback_query(call.id, confirm_text[lang_code])
     bot.edit_message_text(confirm_text[lang_code], call.message.chat.id, call.message.message_id)
 
-# 🎬 معالجة وتحميل الفيديو من جميع المنصات مع الأنيميشن
+# 🎬 معالجة وتحميل الفيديو لتخطي حظر Cloud IP
 @bot.message_handler(func=lambda message: message.text and ('http://' in message.text or 'https://' in message.text))
 def handle_download(message):
     user_id = message.from_user.id
@@ -161,7 +161,6 @@ def handle_download(message):
         bot.send_message(chat_id, txt['force_sub'], parse_mode='HTML', reply_markup=markup)
         return
 
-    # بداية رسالة التحميل والأنيميشن الأول
     msg = bot.send_message(
         chat_id, 
         f"{rtl}{txt['loading_title']} ⠋\n\n[{txt['steps'][0][1]}]\n{txt['steps'][0][0]}", 
@@ -170,18 +169,23 @@ def handle_download(message):
     
     output_filename = f"vid_{user_id}_{int(time.time())}.mp4"
 
+    # ⚙️ إعدادات تخطي حظر يوتيوب عبر المحاكاة لـ Android Player
     ydl_opts = {
-        'format': 'b[ext=mp4]/bestvideo[ext=mp4]+bestaudio[ext=m4a]/best',
+        'format': 'b[ext=mp4]/best[ext=mp4]/best',
         'outtmpl': output_filename,
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
-        'max_filesize': 50 * 1024 * 1024,
-        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
+        'geo_bypass': True,
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'web'], # التظاهر بالطلب من تطبيق أندرويد لتفادي الحظر
+            }
+        },
+        'user_agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36'
     }
 
     try:
-        # حركة الأنيميشن الثانية
         bot.edit_message_text(
             f"{rtl}{txt['loading_title']} ⠙\n\n[{txt['steps'][1][1]}]\n{txt['steps'][1][0]}",
             chat_id, msg.message_id, parse_mode='HTML'
@@ -194,7 +198,6 @@ def handle_download(message):
             duration = info.get('duration', 0)
             extractor = info.get('extractor_key', 'Media')
 
-        # حركة أنيميشن رفع الملف
         bot.edit_message_text(
             f"{rtl}{txt['upload_title']} ⚡\n\n[██████████ 100%]\n{txt['upload_status']}",
             chat_id, msg.message_id, parse_mode='HTML'
@@ -229,7 +232,7 @@ def handle_download(message):
         bot.delete_message(chat_id, msg.message_id)
 
     except Exception as e:
-        print(f"❌ الخطأ: {e}")
+        print(f"❌ تفاصيل الخطأ في السيرفر: {e}")
         bot.edit_message_text(f"{rtl}{txt.get('err_download', 'Error')}", chat_id, msg.message_id, parse_mode='HTML')
 
     finally:
@@ -237,7 +240,7 @@ def handle_download(message):
             os.remove(output_filename)
 
 if __name__ == "__main__":
-    print("⚡ البوت يعمل بنجاح مع الأنيميشن وسرعة التحميل...")
+    print("⚡ البوت جاهز ومحدث لتخطي حظر السيرفرات...")
     try:
         bot.infinity_polling(timeout=15, long_polling_timeout=5)
     except Exception as e:
