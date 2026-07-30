@@ -35,7 +35,7 @@ def run_web_server():
 TEXTS = {
     'ar': {
         'welcome': (
-            "🎬 **مرحباً بك في VideoHub Downloader**\n\n"
+            "🎬 **مرحباً بك في https://t.me/Ussame_bot **\n\n"
             "━━━━━━━━━━━━━━━━━━\n"
             "⚡ أسرع بوت لتحميل الفيديوهات\n"
             "🎞️ جودة عالية\n"
@@ -93,7 +93,7 @@ TEXTS = {
     },
     'en': {
         'welcome': (
-            "🎬 **Welcome to VideoHub Downloader**\n\n"
+            "🎬 **Welcome to https://t.me/Ussame_bot **\n\n"
             "━━━━━━━━━━━━━━━━━━\n"
             "⚡ Fastest Video Downloader\n"
             "🎞️ High Quality\n"
