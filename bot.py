@@ -59,7 +59,7 @@ except Exception as e:
 BOT_TOKEN = "8629100412:AAFnsQbPXXTjyJro49NXAYe0ut3Z-PoeOu8"
 CHANNEL_USERNAME = "@wanasatt"
 CHANNEL_URL = "https://t.me/wanasatt"
-ADMIN_ID = 123456789  # قم بتغييره لمعرفك الشخصي
+ADMIN_ID = 123456789  # قم بتغييره لمعرفك الشخصي (Telegram User ID)
 
 DOWNLOAD_DIR = Path("downloads")
 DOWNLOAD_DIR.mkdir(exist_ok=True)
@@ -103,7 +103,7 @@ TEXT = {
             "🔰 لدعم الاستمرار والتحميل السريع بدون حدود، يرجى الاشتراك في القناة أولاً ثم اضغط على زر التفعيل بالأسفل 👇"
         ),
         "sub_btn": "📢 رابط القناة الرسمية",
-        "check_sub": "🫆 اضغط هنا بعد الاشتراك للتفعيل",
+        "check_sub": "🔄 اضغط هنا بعد الاشتراك للتفعيل",
         "checking": "🔍 <b>جاري تحليل الرابط وتجاوز القيود...</b> ⏳",
         "downloading": "📥 <b>جاري تنزيل المحتوى بالسيرفر...</b> 🚀",
         "uploading": "📤 <b>جاري رفعه إليك فوراً...</b> ⚡️",
@@ -160,7 +160,7 @@ TEXT = {
 }
 
 # ==========================================
-# 4. إدارة قواعد البيانات واللغة
+# 4. إدارة قواعد البيانات واللغات
 # ==========================================
 def register_user(user_id: int, default_lang: str = "ar"):
     lang = default_lang if default_lang in TEXT else "ar"
@@ -229,7 +229,6 @@ def language_keyboard():
     ])
 
 def channel_button_under_video(lang: str):
-    """زر شفاف ومميز يربط بالقناة أسفل كل فيديو/صوتيات"""
     return InlineKeyboardMarkup([
         [InlineKeyboardButton(TEXT[lang]["visit_channel"], url=CHANNEL_URL)]
     ])
@@ -347,7 +346,7 @@ async def lang_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text(TEXT[selected_lang]["lang_changed"], parse_mode="HTML")
 
 # ==========================================
-# 8. معالجة التنزيل وتجاوز حظر يوتيوب
+# 8. معالجة التنزيل وتجاوز حظر يوتيوب عبر نظام السيرفرات المتعددة
 # ==========================================
 async def handle_media_download(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
@@ -361,7 +360,6 @@ async def handle_media_download(update: Update, context: ContextTypes.DEFAULT_TY
         await receive_broadcast(update, context)
         return
 
-    # التحقق من الاشتراك الإجباري
     if not await is_subscribed(context, user.id):
         await update.message.reply_text(
             TEXT[lang]["need_sub"],
@@ -374,45 +372,69 @@ async def handle_media_download(update: Update, context: ContextTypes.DEFAULT_TY
     if not text.startswith(("http://", "https://")):
         return
 
-    # 🛡️ تجاوز حظر يوتيوب عبر تحويل النطاق تلقائياً لمرايا خفيفة إذا لم يتوفر cookies.txt
-    download_url = text
-    if ("youtube.com" in text or "youtu.be" in text) and not os.path.exists("cookies.txt"):
-        download_url = text.replace("youtube.com", "yewtu.be").replace("youtu.be/", "yewtu.be/watch?v=")
-
     status = await update.message.reply_text(TEXT[lang]["checking"], parse_mode="HTML")
     quality = user_quality.get(user.id, "best")
     output = str(DOWNLOAD_DIR / f"{user.id}_{int(time.time())}_%(title)s.%(ext)s")
 
-    try:
-        await status.edit_text(TEXT[lang]["downloading"], parse_mode="HTML")
-        loop = asyncio.get_running_loop()
+    # قائمة النطاقات والبدائل للالتفاف على حظر يوتيوب بالتتابع
+    urls_to_try = [text]
+    if ("youtube.com" in text or "youtu.be" in text) and not os.path.exists("cookies.txt"):
+        urls_to_try = [
+            text.replace("youtube.com", "vid.puffyan.us").replace("youtu.be/", "vid.puffyan.us/watch?v="),
+            text.replace("youtube.com", "invidious.nerdvpn.de").replace("youtu.be/", "invidious.nerdvpn.de/watch?v="),
+            text.replace("youtube.com", "inv.tux.pizza").replace("youtu.be/", "inv.tux.pizza/watch?v="),
+            text.replace("youtube.com", "yewtu.be").replace("youtu.be/", "yewtu.be/watch?v="),
+            text  # التجربة المباشرة كخيار أخير
+        ]
 
+    await status.edit_text(TEXT[lang]["downloading"], parse_mode="HTML")
+    loop = asyncio.get_running_loop()
+
+    success = False
+    last_error = None
+    info, file_path = None, None
+
+    for current_url in urls_to_try:
         def worker():
             opts = build_ydl_opts(output, quality)
             with yt_dlp.YoutubeDL(opts) as ydl:
-                info = ydl.extract_info(download_url, download=True)
-                file_path = ydl.prepare_filename(info)
+                inf = ydl.extract_info(current_url, download=True)
+                fpath = ydl.prepare_filename(inf)
                 
                 if quality == "mp3":
-                    file_path = os.path.splitext(file_path)[0] + ".mp3"
+                    fpath = os.path.splitext(fpath)[0] + ".mp3"
 
-                if not os.path.exists(file_path):
-                    base = os.path.splitext(file_path)[0]
+                if not os.path.exists(fpath):
+                    base = os.path.splitext(fpath)[0]
                     for ext in (".mp4", ".mkv", ".webm", ".mov", ".mp3"):
                         if os.path.exists(base + ext):
-                            file_path = base + ext
+                            fpath = base + ext
                             break
-                return info, file_path
+                return inf, fpath
 
-        info, file_path = await loop.run_in_executor(None, worker)
+        try:
+            info, file_path = await loop.run_in_executor(None, worker)
+            success = True
+            break
+        except Exception as e:
+            last_error = e
+            continue
 
+    if not success:
+        logging.exception(last_error)
+        await status.edit_text(
+            f"{TEXT[lang]['failed']}\n\n<code>{last_error}</code>",
+            parse_mode="HTML",
+        )
+        return
+
+    try:
         title = info.get("title", "Media File")
         uploader = info.get("uploader", "Unknown")
         duration = info.get("duration", 0)
-        extractor = "YouTube" if "yewtu.be" in download_url else info.get("extractor_key", "Media")
+        extractor = "YouTube" if any(domain in text for domain in ["youtube.com", "youtu.be"]) else info.get("extractor_key", "Media")
         size = os.path.getsize(file_path) / (1024 * 1024)
 
-        # تصميم إطار الكابشن الجديد
         caption = (
             f"🎬 <b>{title}</b>\n"
             f"━━━━━━━━━━━━━━━━━━━\n"
@@ -423,8 +445,6 @@ async def handle_media_download(update: Update, context: ContextTypes.DEFAULT_TY
         )
 
         await status.edit_text(TEXT[lang]["uploading"], parse_mode="HTML")
-
-        # زر القناة الأسفل للمقطع
         video_keyboard = channel_button_under_video(lang)
         
         with open(file_path, "rb") as media_file:
