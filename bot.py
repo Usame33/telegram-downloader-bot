@@ -1,28 +1,13 @@
-import threading
-from http.server import HTTPServer, BaseHTTPRequestHandler
-
-# سيرفر وهمي لإرضاء Render
-class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.end_headers()
-        self.wfile.write(b"Bot is alive!")
-
-def run_dummy_server():
-    port = int(os.environ.get("PORT", 8080))
-    server = HTTPServer(("0.0.0.0", port), SimpleHTTPRequestHandler)
-    server.serve_forever()
-
-# تشغيل السيرفر في خلفية النظام
-threading.Thread(target=run_dummy_server, daemon=True).start()
 import os
 import sys
 import time
 import logging
 import asyncio
 import sqlite3
+import threading
 import subprocess
 from pathlib import Path
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
 import yt_dlp
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -34,6 +19,27 @@ from telegram.ext import (
     ContextTypes,
     filters,
 )
+
+# ==========================
+# 0. خادم وهمي لإرضاء Render وتجاوز خطأ الـ Port
+# ==========================
+class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Bot is active and running!")
+
+    def log_message(self, format, *args):
+        return  # إخفاء سجلات الـ HTTP لعدم ملء الشاشة
+
+def run_dummy_server():
+    port = int(os.environ.get("PORT", 8080))
+    server = HTTPServer(("0.0.0.0", port), SimpleHTTPRequestHandler)
+    print(f"🌐 Dummy server listening on port {port} for Render...")
+    server.serve_forever()
+
+# تشغيل السيرفر في مسار خلفي مستقل
+threading.Thread(target=run_dummy_server, daemon=True).start()
 
 # ==========================
 # 1. التحديث التلقائي للمكتبة
@@ -81,7 +87,7 @@ broadcast_mode = {}
 downloads_count = 0
 
 # ==========================
-# 3. النصوص متعددة اللغات (واجهة جديدة جذابة)
+# 3. النصوص متعددة اللغات
 # ==========================
 TEXT = {
     "ar": {
@@ -207,7 +213,7 @@ def clean_downloads():
             pass
 
 # ==========================
-# 5. الأزرار التفاعلية الجذابة
+# 5. الأزرار التفاعلية
 # ==========================
 async def is_subscribed(context: ContextTypes.DEFAULT_TYPE, user_id: int) -> bool:
     try:
@@ -252,7 +258,7 @@ def channel_button_under_video(lang: str):
     ])
 
 # ==========================
-# 6. إعدادات yt-dlp
+# 6. إعدادات yt-dlp المُعدلة لتجاوز الحظر
 # ==========================
 def progress_hook(d):
     if d.get("status") == "downloading":
@@ -263,6 +269,11 @@ def progress_hook(d):
             progress_cache["percent"] = percent
 
 def build_ydl_opts(output: str, quality: str):
+    youtube_args = {
+        "player_client": ["ios", "android", "mweb"],
+        "skip": ["configs", "webpage"]
+    }
+
     if quality == "360":
         fmt = "bestvideo[height<=360]+bestaudio/best[height<=360]"
     elif quality == "720":
@@ -281,10 +292,9 @@ def build_ydl_opts(output: str, quality: str):
                 "preferredcodec": "mp3",
                 "preferredquality": "320",
             }],
-            "extractor_args": {
-                "youtube": {
-                    "player_client": ["android", "ios"]
-                }
+            "extractor_args": {"youtube": youtube_args},
+            "http_headers": {
+                "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"
             }
         }
         if os.path.exists("cookies.txt"):
@@ -304,11 +314,9 @@ def build_ydl_opts(output: str, quality: str):
         "geo_bypass": True,
         "nocheckcertificate": True,
         "progress_hooks": [progress_hook],
-        "http_headers": {"User-Agent": "Mozilla/5.0"},
-        "extractor_args": {
-            "youtube": {
-                "player_client": ["android", "ios"]
-            }
+        "extractor_args": {"youtube": youtube_args},
+        "http_headers": {
+            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"
         }
     }
 
@@ -386,7 +394,7 @@ async def lang_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text(TEXT[selected_lang]["lang_changed"], parse_mode="HTML")
 
 # ==========================
-# 8. التحميل والرفع بصورة أنيقة
+# 8. التحميل والرفع
 # ==========================
 async def handle_media_download(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
@@ -445,7 +453,6 @@ async def handle_media_download(update: Update, context: ContextTypes.DEFAULT_TY
         extractor = info.get("extractor_key", "Media")
         size = os.path.getsize(file_path) / (1024 * 1024)
 
-        # تصميم كابشن احترافي ومُنظم
         caption = (
             f"🎬 <b>{title}</b>\n"
             f"━━━━━━━━━━━━━━━━━━━\n"
@@ -562,7 +569,7 @@ def main():
 
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_media_download))
 
-    print("🤖 Bot Started Successfully with Interactive Interface...")
+    print("🤖 Bot Started Successfully with Port Binding for Render...")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
