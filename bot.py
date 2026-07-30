@@ -30,7 +30,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"Bot is active and running!")
 
     def log_message(self, format, *args):
-        return  # إخفاء سجلات الـ HTTP لعدم ملء الشاشة
+        return
 
 def run_dummy_server():
     port = int(os.environ.get("PORT", 8080))
@@ -38,7 +38,6 @@ def run_dummy_server():
     print(f"🌐 Dummy server listening on port {port} for Render...")
     server.serve_forever()
 
-# تشغيل السيرفر في مسار خلفي مستقل
 threading.Thread(target=run_dummy_server, daemon=True).start()
 
 # ==========================
@@ -60,7 +59,7 @@ BOT_TOKEN = "8629100412:AAFnsQbPXXTjyJro49NXAYe0ut3Z-PoeOu8"
 CHANNEL_USERNAME = "@wanasatt"
 CHANNEL_URL = "https://t.me/wanasatt"
 BOT_URL = "https://t.me/Ussame_bot"
-ADMIN_ID = 123456789  # غيره بمعرفك الشخصي في تلغرام لوحة التحكم
+ADMIN_ID = 123456789  # غيره بمعرفك الشخصي
 
 DOWNLOAD_DIR = Path("downloads")
 DOWNLOAD_DIR.mkdir(exist_ok=True)
@@ -70,7 +69,6 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(message)s",
 )
 
-# قواعد البيانات
 DB = sqlite3.connect("users.db", check_same_thread=False)
 CURSOR = DB.cursor()
 CURSOR.execute("""
@@ -258,7 +256,7 @@ def channel_button_under_video(lang: str):
     ])
 
 # ==========================
-# 6. إعدادات yt-dlp المُعدلة لتجاوز الحظر
+# 6. إعدادات yt-dlp المُحدثة لكسر الحظر بالكامل
 # ==========================
 def progress_hook(d):
     if d.get("status") == "downloading":
@@ -269,43 +267,13 @@ def progress_hook(d):
             progress_cache["percent"] = percent
 
 def build_ydl_opts(output: str, quality: str):
+    # استخدام أكثر العملاء أماناً ضد حظر IP الخوادم
     youtube_args = {
-        "player_client": ["ios", "android", "mweb"],
-        "skip": ["configs", "webpage"]
+        "player_client": ["tv", "web_creator", "android_creator", "mweb"],
+        "player_skip": ["webpage", "configs"]
     }
 
-    if quality == "360":
-        fmt = "bestvideo[height<=360]+bestaudio/best[height<=360]"
-    elif quality == "720":
-        fmt = "bestvideo[height<=720]+bestaudio/best[height<=720]"
-    elif quality == "1080":
-        fmt = "bestvideo[height<=1080]+bestaudio/best[height<=1080]"
-    elif quality == "mp3":
-        opts = {
-            "format": "bestaudio/best",
-            "outtmpl": output,
-            "quiet": True,
-            "extract_audio": True,
-            "progress_hooks": [progress_hook],
-            "postprocessors": [{
-                "key": "FFmpegExtractAudio",
-                "preferredcodec": "mp3",
-                "preferredquality": "320",
-            }],
-            "extractor_args": {"youtube": youtube_args},
-            "http_headers": {
-                "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"
-            }
-        }
-        if os.path.exists("cookies.txt"):
-            opts["cookiefile"] = "cookies.txt"
-        return opts
-    else:
-        fmt = "bv*+ba/b"
-
-    opts = {
-        "format": fmt,
-        "merge_output_format": "mp4",
+    common_opts = {
         "outtmpl": output,
         "quiet": True,
         "noplaylist": True,
@@ -316,14 +284,36 @@ def build_ydl_opts(output: str, quality: str):
         "progress_hooks": [progress_hook],
         "extractor_args": {"youtube": youtube_args},
         "http_headers": {
-            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
     }
 
     if os.path.exists("cookies.txt"):
-        opts["cookiefile"] = "cookies.txt"
+        common_opts["cookiefile"] = "cookies.txt"
 
-    return opts
+    if quality == "360":
+        fmt = "bestvideo[height<=360]+bestaudio/best[height<=360]"
+    elif quality == "720":
+        fmt = "bestvideo[height<=720]+bestaudio/best[height<=720]"
+    elif quality == "1080":
+        fmt = "bestvideo[height<=1080]+bestaudio/best[height<=1080]"
+    elif quality == "mp3":
+        common_opts.update({
+            "format": "bestaudio/best",
+            "extract_audio": True,
+            "postprocessors": [{
+                "key": "FFmpegExtractAudio",
+                "preferredcodec": "mp3",
+                "preferredquality": "320",
+            }]
+        })
+        return common_opts
+    else:
+        fmt = "bv*+ba/b"
+
+    common_opts["format"] = fmt
+    common_opts["merge_output_format"] = "mp4"
+    return common_opts
 
 # ==========================
 # 7. الأوامر والمعالجة
