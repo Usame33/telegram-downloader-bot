@@ -33,11 +33,11 @@ except Exception as e:
 # ==========================
 # 2. الإعدادات والروابط
 # ==========================
-BOT_TOKEN = "8629100412:AAGm4yGHRUpRqAzdReY4ZbLw3ESQVtmk26g"
+BOT_TOKEN = "8629100412:AAFnsQbPXXTjyJro49NXAYe0ut3Z-PoeOu8"
 CHANNEL_USERNAME = "@wanasatt"
 CHANNEL_URL = "https://t.me/wanasatt"
 BOT_URL = "https://t.me/Ussame_bot"
-ADMIN_ID = 123456789  # ضع معرفك هنا لوحة التحكم
+ADMIN_ID = 123456789  # غيره بمعرفك الشخصي في تلغرام لوحة التحكم
 
 DOWNLOAD_DIR = Path("downloads")
 DOWNLOAD_DIR.mkdir(exist_ok=True)
@@ -64,80 +64,98 @@ broadcast_mode = {}
 downloads_count = 0
 
 # ==========================
-# 3. النصوص متعددة اللغات
+# 3. النصوص متعددة اللغات (واجهة جديدة جذابة)
 # ==========================
 TEXT = {
     "ar": {
-        "welcome": "👋 أهلاً بك في بوت التحميل الاحترافي.\n\nأرسل رابط فيديو وسأقوم بتحميله.",
-        "need_sub": "⚠️ يجب الاشتراك في القناة أولاً لاستخدام البوت.",
-        "sub_btn": "📢 الاشتراك في القناة",
-        "check_sub": "✅ تحقق من الاشتراك",
-        "checking": "🔍 جاري فحص الرابط...",
-        "downloading": "📥 جاري تحميل الفيديو...",
-        "uploading": "📤 جاري إرسال الفيديو...",
-        "failed": "❌ تعذر تحميل الفيديو.",
-        "verified": "✅ تم التحقق بنجاح.\n\nأرسل رابط الفيديو الآن.",
-        "not_subbed": "❌ لم تشترك بعد في القناة.",
-        "quality_selected": "✅ تم اختيار الجودة: <b>{}</b>\n\nأرسل رابط الفيديو الآن.",
-        "title": "العنوان",
+        "welcome": (
+            "✨ <b>مرحباً بك في مُحمل الميديا الذكي!</b> 🎬\n\n"
+            "🚀 أرسل لي أي رابط (يوتيوب، تيك توك، إنستغرام، إلخ) وسأقوم بتحميله لك فوراً بأعلى جودة ممتازة.\n\n"
+            "⚙️ <i>اختر الجودة المطلوبة من الأزرار أدناه:</i>"
+        ),
+        "need_sub": (
+            "🔒 <b>عذراً، المحتوى محمي!</b>\n\n"
+            "للاستفادة من خدمات البوت والتحميل السريع، يرجى الاشتراك في القناة الرسمية أولاً ثم اضغط على زر التحقق."
+        ),
+        "sub_btn": "📢 انضم للقناة الرسمية",
+        "check_sub": "🔄 تحقق من الاشتراك الان",
+        "checking": "🔎 <b>جاري فحص الرابط واستخراج المعلومات...</b>",
+        "downloading": "⚡️ <b>جاري التحميل بأقصى سرعة...</b>",
+        "uploading": "🚀 <b>جاري رفع المقطع إلى تلغرام...</b>",
+        "failed": "❌ <b>عذراً، حدث خطأ أثناء جلب المقطع.</b>\nتأكد من أن الرابط يعمل وأنه غير خاص.",
+        "verified": "🎉 <b>تم التحقق بنجاح!</b>\n\nأرسل رابط الفيديو الآن وابدأ التحميل.",
+        "not_subbed": "⚠️ لم تشترك بعد! يرجى الاشتراك في القناة أولاً.",
+        "quality_selected": "🎯 <b>تم اختيار الجودة:</b> <code>{}</code>\n\n🔗 أرسل رابط الفيديو الآن لتنزيله بهذه الجودة.",
         "uploader": "الناشر",
         "duration": "المدة",
         "platform": "المنصة",
         "size": "الحجم",
         "seconds": "ثانية",
-        "visit_channel": "📢 انضم لقناتنا على تلغرام",
-        "choose_lang": "🌐 اختر لغتك المفضلة / Choose your language / Choisissez votre langue:",
-        "lang_changed": "✅ تم تغيير اللغة إلى العربية بنجاح.",
-        "best_q": "🏆 أفضل جودة",
-        "audio_only": "🎵 MP3 صوت فقط"
+        "visit_channel": "✨ القناة الرسمية للتحديثات",
+        "choose_lang": "🌐 <b>اختر لغتك المفضلة / Select Your Language:</b>",
+        "lang_changed": "✅ <b>تم ضبط اللغة بنجاح!</b>",
+        "best_q": "🔥 أقصى جودة متاحة",
+        "audio_only": "🎧 صوت فقط (MP3 320k)"
     },
     "en": {
-        "welcome": "👋 Welcome to the Professional Downloader Bot.\n\nSend me a video link to download.",
-        "need_sub": "⚠️ You must subscribe to our channel first to use this bot.",
-        "sub_btn": "📢 Subscribe to Channel",
-        "check_sub": "✅ Verify Subscription",
-        "checking": "🔍 Checking link...",
-        "downloading": "📥 Downloading video...",
-        "uploading": "📤 Uploading video...",
-        "failed": "❌ Failed to download video.",
-        "verified": "✅ Successfully verified.\n\nSend a video link now.",
-        "not_subbed": "❌ You are not subscribed yet.",
-        "quality_selected": "✅ Quality selected: <b>{}</b>\n\nSend a video link now.",
-        "title": "Title",
+        "welcome": (
+            "✨ <b>Welcome to Smart Media Downloader!</b> 🎬\n\n"
+            "🚀 Send me any video link (YouTube, TikTok, Instagram, etc.) and I'll download it for you instantly!\n\n"
+            "⚙️ <i>Select your preferred quality below:</i>"
+        ),
+        "need_sub": (
+            "🔒 <b>Access Restricted!</b>\n\n"
+            "To use this bot, please subscribe to our official channel first, then tap the verification button below."
+        ),
+        "sub_btn": "📢 Join Official Channel",
+        "check_sub": "🔄 Verify Subscription Now",
+        "checking": "🔎 <b>Analyzing link and fetching details...</b>",
+        "downloading": "⚡️ <b>Downloading at max speed...</b>",
+        "uploading": "🚀 <b>Uploading file to Telegram...</b>",
+        "failed": "❌ <b>Download failed.</b>\nPlease make sure the link is valid and public.",
+        "verified": "🎉 <b>Verification Successful!</b>\n\nSend a video link to start downloading.",
+        "not_subbed": "⚠️ You haven't subscribed yet!",
+        "quality_selected": "🎯 <b>Selected Quality:</b> <code>{}</code>\n\n🔗 Send a video link now to download.",
         "uploader": "Uploader",
         "duration": "Duration",
         "platform": "Platform",
         "size": "Size",
-        "seconds": "seconds",
-        "visit_channel": "📢 Join Our Telegram Channel",
-        "choose_lang": "🌐 Choose your language / اختر لغتك المفضلة:",
-        "lang_changed": "✅ Language successfully set to English.",
-        "best_q": "🏆 Best Quality",
-        "audio_only": "🎵 MP3 Audio Only"
+        "seconds": "sec",
+        "visit_channel": "✨ Official Channel",
+        "choose_lang": "🌐 <b>Select Your Language:</b>",
+        "lang_changed": "✅ <b>Language updated successfully!</b>",
+        "best_q": "🔥 Maximum Quality",
+        "audio_only": "🎧 Audio Only (MP3 320k)"
     },
     "fr": {
-        "welcome": "👋 Bienvenue sur le bot de téléchargement professionnel.\n\nEnvoyez un lien vidéo à télécharger.",
-        "need_sub": "⚠️ Vous devez d'abord vous abonner à notre chaîne pour utiliser ce bot.",
-        "sub_btn": "📢 S'abonner à la chaîne",
-        "check_sub": "✅ Vérifier l'abonnement",
-        "checking": "🔍 Vérification du lien...",
-        "downloading": "📥 Téléchargement de la vidéo...",
-        "uploading": "📤 Envoi de la vidéo...",
-        "failed": "❌ Échec du téléchargement de la vidéo.",
-        "verified": "✅ Vérifié avec succès.\n\nEnvoyez un lien vidéo maintenant.",
-        "not_subbed": "❌ Vous n'êtes pas encore abonné.",
-        "quality_selected": "✅ Qualité sélectionnée: <b>{}</b>\n\nEnvoyez un lien vidéo maintenant.",
-        "title": "Titre",
-        "uploader": "Publié par",
+        "welcome": (
+            "✨ <b>Bienvenue sur Téléchargeur Média Intelligent!</b> 🎬\n\n"
+            "🚀 Envoyez-moi un lien vidéo et je le téléchargerai instantanément!\n\n"
+            "⚙️ <i>Choisissez votre qualité ci-dessous:</i>"
+        ),
+        "need_sub": (
+            "🔒 <b>Accès Restreint!</b>\n\n"
+            "Veuillez vous abonner à notre chaîne officielle pour utiliser ce bot."
+        ),
+        "sub_btn": "📢 Rejoindre la chaîne",
+        "check_sub": "🔄 Vérifier l'abonnement",
+        "checking": "🔎 <b>Analyse du lien en cours...</b>",
+        "downloading": "⚡️ <b>Téléchargement rapide...</b>",
+        "uploading": "🚀 <b>Envoi vers Telegram...</b>",
+        "failed": "❌ <b>Échec du téléchargement.</b>",
+        "verified": "🎉 <b>Vérification réussie!</b>\n\nEnvoyez un lien vidéo.",
+        "not_subbed": "⚠️ Vous n'êtes pas encore abonné!",
+        "quality_selected": "🎯 <b>Qualité choisie:</b> <code>{}</code>\n\n🔗 Envoyez le lien maintenant.",
+        "uploader": "Auteur",
         "duration": "Durée",
         "platform": "Plateforme",
         "size": "Taille",
-        "seconds": "secondes",
-        "visit_channel": "📢 Rejoignez notre canal Telegram",
-        "choose_lang": "🌐 Choisissez votre langue / Choose your language:",
-        "lang_changed": "✅ Langue changée en Français avec succès.",
-        "best_q": "🏆 Meilleure Qualité",
-        "audio_only": "🎵 MP3 Audio Uniquement"
+        "seconds": "sec",
+        "visit_channel": "✨ Chaîne Officielle",
+        "choose_lang": "🌐 <b>Choisissez votre langue:</b>",
+        "lang_changed": "✅ <b>Langue mise à jour!</b>",
+        "best_q": "🔥 Meilleure Qualité",
+        "audio_only": "🎧 Audio Uniquement (MP3)"
     }
 }
 
@@ -172,7 +190,7 @@ def clean_downloads():
             pass
 
 # ==========================
-# 5. الأزرار الشفافة واللوحات
+# 5. الأزرار التفاعلية الجذابة
 # ==========================
 async def is_subscribed(context: ContextTypes.DEFAULT_TYPE, user_id: int) -> bool:
     try:
@@ -190,15 +208,15 @@ def force_keyboard(lang: str):
 def quality_keyboard(lang: str):
     return InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("360P", callback_data="360"),
-            InlineKeyboardButton("720P", callback_data="720"),
+            InlineKeyboardButton("🎬 360p", callback_data="360"),
+            InlineKeyboardButton("🎬 720p HD", callback_data="720"),
+            InlineKeyboardButton("🎬 1080p FHD", callback_data="1080"),
         ],
         [
-            InlineKeyboardButton("1080P", callback_data="1080"),
-            InlineKeyboardButton(TEXT[lang]["best_q"], callback_data="best"),
+            InlineKeyboardButton(TEXT[lang]["best_q"], callback_data="best")
         ],
         [
-            InlineKeyboardButton(TEXT[lang]["audio_only"], callback_data="mp3"),
+            InlineKeyboardButton(TEXT[lang]["audio_only"], callback_data="mp3")
         ]
     ])
 
@@ -217,7 +235,7 @@ def channel_button_under_video(lang: str):
     ])
 
 # ==========================
-# 6. إعدادات yt-dlp المحدثة لتجاوز الحظر
+# 6. إعدادات yt-dlp
 # ==========================
 def progress_hook(d):
     if d.get("status") == "downloading":
@@ -270,7 +288,6 @@ def build_ydl_opts(output: str, quality: str):
         "nocheckcertificate": True,
         "progress_hooks": [progress_hook],
         "http_headers": {"User-Agent": "Mozilla/5.0"},
-        # --- حل مشكلة حظر يوتيوب وتأكيد البوت تلقائياً ---
         "extractor_args": {
             "youtube": {
                 "player_client": ["android", "ios"]
@@ -293,12 +310,17 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(user.id)
 
     if not await is_subscribed(context, user.id):
-        await update.message.reply_text(TEXT[lang]["need_sub"], reply_markup=force_keyboard(lang))
+        await update.message.reply_text(
+            TEXT[lang]["need_sub"],
+            reply_markup=force_keyboard(lang),
+            parse_mode="HTML"
+        )
         return
 
     await update.message.reply_text(
         TEXT[lang]["welcome"],
-        reply_markup=quality_keyboard(lang)
+        reply_markup=quality_keyboard(lang),
+        parse_mode="HTML"
     )
 
 async def set_language_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -306,7 +328,8 @@ async def set_language_command(update: Update, context: ContextTypes.DEFAULT_TYP
     lang = get_user_lang(user.id)
     await update.message.reply_text(
         TEXT[lang]["choose_lang"],
-        reply_markup=language_keyboard()
+        reply_markup=language_keyboard(),
+        parse_mode="HTML"
     )
 
 async def check_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -315,7 +338,7 @@ async def check_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(query.from_user.id)
 
     if await is_subscribed(context, query.from_user.id):
-        await query.edit_message_text(TEXT[lang]["verified"])
+        await query.edit_message_text(TEXT[lang]["verified"], parse_mode="HTML")
     else:
         await query.answer(TEXT[lang]["not_subbed"], show_alert=True)
 
@@ -326,7 +349,15 @@ async def quality_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(query.from_user.id)
     user_quality[query.from_user.id] = choice
     
-    msg_text = TEXT[lang]["quality_selected"].format(choice)
+    quality_name = {
+        "360": "360p SD",
+        "720": "720p HD",
+        "1080": "1080p FHD",
+        "best": "🔥 Best Quality",
+        "mp3": "🎧 MP3 Audio"
+    }.get(choice, choice)
+
+    msg_text = TEXT[lang]["quality_selected"].format(quality_name)
     await query.edit_message_text(msg_text, parse_mode="HTML")
 
 async def lang_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -335,10 +366,10 @@ async def lang_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     selected_lang = query.data.replace("set_lang_", "")
     
     set_user_lang(query.from_user.id, selected_lang)
-    await query.edit_message_text(TEXT[selected_lang]["lang_changed"])
+    await query.edit_message_text(TEXT[selected_lang]["lang_changed"], parse_mode="HTML")
 
 # ==========================
-# 8. التحميل والرفع مع الأزرار الشفافة
+# 8. التحميل والرفع بصورة أنيقة
 # ==========================
 async def handle_media_download(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
@@ -353,19 +384,23 @@ async def handle_media_download(update: Update, context: ContextTypes.DEFAULT_TY
         return
 
     if not await is_subscribed(context, user.id):
-        await update.message.reply_text(TEXT[lang]["need_sub"], reply_markup=force_keyboard(lang))
+        await update.message.reply_text(
+            TEXT[lang]["need_sub"],
+            reply_markup=force_keyboard(lang),
+            parse_mode="HTML"
+        )
         return
 
     text = update.message.text.strip()
     if not text.startswith(("http://", "https://")):
         return
 
-    status = await update.message.reply_text(TEXT[lang]["checking"])
+    status = await update.message.reply_text(TEXT[lang]["checking"], parse_mode="HTML")
     quality = user_quality.get(user.id, "best")
     output = str(DOWNLOAD_DIR / f"{user.id}_{int(time.time())}_%(title)s.%(ext)s")
 
     try:
-        await status.edit_text(TEXT[lang]["downloading"])
+        await status.edit_text(TEXT[lang]["downloading"], parse_mode="HTML")
         loop = asyncio.get_running_loop()
 
         def worker():
@@ -387,24 +422,24 @@ async def handle_media_download(update: Update, context: ContextTypes.DEFAULT_TY
 
         info, file_path = await loop.run_in_executor(None, worker)
 
-        title = info.get("title", "Unknown")
+        title = info.get("title", "File")
         uploader = info.get("uploader", "Unknown")
         duration = info.get("duration", 0)
         extractor = info.get("extractor_key", "Media")
         size = os.path.getsize(file_path) / (1024 * 1024)
 
-        # تجهيز الوصف بلغة المستخدم
+        # تصميم كابشن احترافي ومُنظم
         caption = (
-            f"✅ <b>{title}</b>\n\n"
+            f"🎬 <b>{title}</b>\n"
+            f"━━━━━━━━━━━━━━━━━━━\n"
             f"👤 <b>{TEXT[lang]['uploader']}:</b> {uploader}\n"
             f"⏱ <b>{TEXT[lang]['duration']}:</b> {duration} {TEXT[lang]['seconds']}\n"
             f"🌐 <b>{TEXT[lang]['platform']}:</b> {extractor}\n"
             f"📦 <b>{TEXT[lang]['size']}:</b> {size:.2f} MB"
         )
 
-        await status.edit_text(TEXT[lang]["uploading"])
+        await status.edit_text(TEXT[lang]["uploading"], parse_mode="HTML")
 
-        # إرسال الفيديو/الصوت مع زر شفاف أسفل المقطع للقناة
         video_keyboard = channel_button_under_video(lang)
         
         with open(file_path, "rb") as media_file:
@@ -437,14 +472,14 @@ async def handle_media_download(update: Update, context: ContextTypes.DEFAULT_TY
         )
 
 # ==========================
-# 9. لوحة الإدارة والإذاعة
+# 9. لوحة الإدارة
 # ==========================
 async def users_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         return
     CURSOR.execute("SELECT COUNT(*) FROM users")
     total = CURSOR.fetchone()[0]
-    await update.message.reply_text(f"👥 <b>إجمالي المستخدمين:</b> {total}", parse_mode="HTML")
+    await update.message.reply_text(f"👥 <b>إجمالي المستخدمين:</b> <code>{total}</code>", parse_mode="HTML")
 
 async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
@@ -452,8 +487,9 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     CURSOR.execute("SELECT COUNT(*) FROM users")
     total = CURSOR.fetchone()[0]
     text = (
-        "📊 <b>إحصائيات البوت</b>\n\n"
-        f"👥 <b>المستخدمون:</b> {total}\n"
+        "📊 <b>إحصائيات البوت</b>\n"
+        "━━━━━━━━━━━━━━━━━━━\n"
+        f"👤 <b>المستخدمون:</b> {total}\n"
         f"📥 <b>التحميلات الناجحة:</b> {downloads_count}"
     )
     await update.message.reply_text(text, parse_mode="HTML")
@@ -462,7 +498,7 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         return
     broadcast_mode[update.effective_user.id] = True
-    await update.message.reply_text("✉️ أرسل الرسالة التي تريد إذاعتها الآن لجميع المستخدمين.")
+    await update.message.reply_text("✉️ <b>أرسل الرسالة الآن للبدء بالإذاعة العامة:</b>", parse_mode="HTML")
 
 async def receive_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
@@ -473,7 +509,7 @@ async def receive_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     users = CURSOR.fetchall()
 
     sent, failed = 0, 0
-    msg = await update.message.reply_text("🚀 جاري بدء الإذاعة...")
+    msg = await update.message.reply_text("🚀 <b>جاري إرسال الإذاعة...</b>", parse_mode="HTML")
 
     for user in users:
         try:
@@ -483,7 +519,10 @@ async def receive_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception:
             failed += 1
 
-    await msg.edit_text(f"✅ <b>اكتملت الإذاعة</b>\n\n🎯 نجح: {sent}\n❌ فشل: {failed}", parse_mode="HTML")
+    await msg.edit_text(
+        f"✅ <b>اكتملت الإذاعة!</b>\n\n🎯 <b>نجح:</b> {sent}\n❌ <b>فشل:</b> {failed}",
+        parse_mode="HTML"
+    )
 
 # ==========================
 # 10. التشغيل الرئيسي
@@ -493,24 +532,20 @@ def main():
 
     app = Application.builder().token(BOT_TOKEN).build()
 
-    # الأوامر العامة
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("lang", set_language_command))
 
-    # أوامر الإدارة
     app.add_handler(CommandHandler("users", users_command))
     app.add_handler(CommandHandler("stats", stats_command))
     app.add_handler(CommandHandler("broadcast", broadcast_command))
 
-    # الكولباك (Callback Queries)
     app.add_handler(CallbackQueryHandler(check_button, pattern="^check_sub$"))
     app.add_handler(CallbackQueryHandler(quality_callback, pattern="^(360|720|1080|best|mp3)$"))
     app.add_handler(CallbackQueryHandler(lang_callback, pattern="^set_lang_"))
 
-    # معالج التحميل والرسائل
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_media_download))
 
-    print("🤖 Bot Started Successfully with Anti-Bot Bypass...")
+    print("🤖 Bot Started Successfully with Interactive Interface...")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
