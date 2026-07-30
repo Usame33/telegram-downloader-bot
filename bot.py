@@ -10,10 +10,12 @@ import yt_dlp
 # إعداد السجلات
 logging.basicConfig(format='%(asctime)s - [%(levelname)s] - %(message)s', level=logging.INFO)
 
-TOKEN = "8629100412:AAF8Tj4xxVB6TNPrMGAJF5drJh4lEF2Lsfc"
+TOKEN = "8629100412:AAFtcB8IT7D-aXpTSsy2b1Tcu05Ta4JUft4"
 CHANNEL_URL = "https://t.me/wanasatt"
 CHANNEL_USERNAME = "@wanasatt"
-BOT_USERNAME = "@VideoHubDownloaderBot"  # غيره لمعرف بوتك الحقيقي
+
+# متغير عام لتخزين معرف البوت التلقائي
+BOT_USERNAME = ""
 
 # --- 🌐 خادم ويب وهمي لإبقاء Render حياً عبر UptimeRobot ---
 class PingHandler(BaseHTTPRequestHandler):
@@ -31,11 +33,11 @@ def run_web_server():
     server = HTTPServer(('0.0.0.0', port), PingHandler)
     server.serve_forever()
 
-# --- القاموس متعدد اللغات بالتصميم الجديد ---
+# --- القاموس متعدد اللغات بالتصميم الأنيق ---
 TEXTS = {
     'ar': {
         'welcome': (
-            "🎬 **مرحباً بك في https://t.me/Ussame_bot **\n\n"
+            "🎬 **مرحباً بك في VideoHub Downloader**\n\n"
             "━━━━━━━━━━━━━━━━━━\n"
             "⚡ أسرع بوت لتحميل الفيديوهات\n"
             "🎞️ جودة عالية\n"
@@ -52,8 +54,6 @@ TEXTS = {
         ),
         'sub_btn': "📢 اشترك في القناة",
         'check_btn': "🫆 التحقق",
-        'help_btn': "📖 دليل الاستخدام",
-        'about_btn': "ℹ️ حول البوت",
         'channel_btn': "📢 قناتنا الرسمية",
         'invalid_url': "🤔 **هذا لا يبدو كرابط صحيح!** أرسل رابطاً يبدأ بـ `http` أو `https`.",
         'analyzing': (
@@ -82,7 +82,7 @@ TEXTS = {
             "🌍 **المنصة:** {extractor}\n"
             "⏱️ **المدة:** {duration}\n"
             "🎞️ **الجودة:** {quality}\n\n"
-            "🤖 **تم التحميل بواسطة**\n{bot_username}\n\n"
+            "🤖 **تم التحميل بواسطة**\n{bot_link}\n\n"
             "شكراً لاستخدامك البوت ❤️\n"
             "━━━━━━━━━━━━━━━━━━"
         ),
@@ -93,7 +93,7 @@ TEXTS = {
     },
     'en': {
         'welcome': (
-            "🎬 **Welcome to https://t.me/Ussame_bot **\n\n"
+            "🎬 **Welcome to VideoHub Downloader**\n\n"
             "━━━━━━━━━━━━━━━━━━\n"
             "⚡ Fastest Video Downloader\n"
             "🎞️ High Quality\n"
@@ -110,8 +110,6 @@ TEXTS = {
         ),
         'sub_btn': "📢 Subscribe to Channel",
         'check_btn': "🫆 Verify",
-        'help_btn': "📖 How to use",
-        'about_btn': "ℹ️ About Bot",
         'channel_btn': "📢 Official Channel",
         'invalid_url': "🤔 **Invalid link!** Send a link starting with `http` or `https`.",
         'analyzing': (
@@ -140,7 +138,7 @@ TEXTS = {
             "🌍 **Platform:** {extractor}\n"
             "⏱️ **Duration:** {duration}\n"
             "🎞️ **Quality:** {quality}\n\n"
-            "🤖 **Downloaded by**\n{bot_username}\n\n"
+            "🤖 **Downloaded by**\n{bot_link}\n\n"
             "Thanks for using our bot ❤️\n"
             "━━━━━━━━━━━━━━━━━━"
         ),
@@ -155,7 +153,7 @@ def get_lang(user_lang_code: str) -> dict:
     if not user_lang_code:
         return TEXTS['ar']
     lang = user_lang_code.lower()[:2]
-    return TEXTS.get(lang, TEXTS['ar']) # افتراضي عربي
+    return TEXTS.get(lang, TEXTS['ar'])
 
 async def check_subscription(user_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
     try:
@@ -298,6 +296,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     url = video_data['url']
     loop = asyncio.get_running_loop()
 
+    bot_link = f"@{BOT_USERNAME}" if BOT_USERNAME else "@Bot"
+
     # 🎬 تحميل فيديو
     if action == "dl_vid":
         await query.answer()
@@ -316,7 +316,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 extractor=video_data['extractor'],
                 duration=video_data['duration'],
                 quality=quality,
-                bot_username=BOT_USERNAME
+                bot_link=bot_link
             )
             
             with open(filename, 'rb') as f:
@@ -349,7 +349,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 extractor=video_data['extractor'],
                 duration=video_data['duration'],
                 quality="MP3 (Audio)",
-                bot_username=BOT_USERNAME
+                bot_link=bot_link
             )
             
             with open(filename, 'rb') as f:
@@ -387,16 +387,22 @@ def download_media(url, format_id, output_filename, is_audio=False):
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([url])
 
+async def post_init(application: Application):
+    global BOT_USERNAME
+    bot_info = await application.bot.get_me()
+    BOT_USERNAME = bot_info.username
+    print(f"✅ تم التعرف تلقائياً على معرّف البوت: @{BOT_USERNAME}")
+
 def main():
     Thread(target=run_web_server, daemon=True).start()
 
-    app = Application.builder().token(TOKEN).build()
+    app = Application.builder().token(TOKEN).post_init(post_init).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_url))
     app.add_handler(CallbackQueryHandler(button_callback))
 
-    print("🚀 VideoHub Downloader يعمل الآن مع الهوية الجديدة...")
+    print("🚀 VideoHub Downloader يعمل الآن مع التجهيزات الكاملة...")
     app.run_polling()
 
 if __name__ == '__main__':
