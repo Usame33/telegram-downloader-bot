@@ -21,7 +21,7 @@ from telegram.ext import (
 )
 
 # ==========================================
-# 0. خادم إبقاء البوت حياً 24/7 وإرضاء Render
+# 0. خادم إبقاء البوت حياً 24/7 (Render Keep-Alive)
 # ==========================================
 class KeepAliveHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -36,13 +36,12 @@ class KeepAliveHandler(BaseHTTPRequestHandler):
 def run_keep_alive():
     port = int(os.environ.get("PORT", 8080))
     server = HTTPServer(("0.0.0.0", port), KeepAliveHandler)
-    print(f"⚡ Keep-Alive Server active on port {port}")
     server.serve_forever()
 
 threading.Thread(target=run_keep_alive, daemon=True).start()
 
 # ==========================================
-# 1. التحديث التلقائي للمكتبات
+# 1. التحديث التلقائي لـ yt-dlp
 # ==========================================
 try:
     subprocess.run(
@@ -50,24 +49,21 @@ try:
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
-except Exception as e:
-    print(f"Warning updating yt-dlp: {e}")
+except Exception:
+    pass
 
 # ==========================================
-# 2. الإعدادات والروابط الرئيسية
+# 2. الإعدادات وقواعد البيانات
 # ==========================================
 BOT_TOKEN = "8629100412:AAFnsQbPXXTjyJro49NXAYe0ut3Z-PoeOu8"
 CHANNEL_USERNAME = "@wanasatt"
 CHANNEL_URL = "https://t.me/wanasatt"
-ADMIN_ID = 123456789  # قم بتغييره لمعرفك الشخصي (Telegram User ID)
+ADMIN_ID = 123456789  # قم بتغييره لمعرفك الشخصي
 
 DOWNLOAD_DIR = Path("downloads")
 DOWNLOAD_DIR.mkdir(exist_ok=True)
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(message)s",
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 
 DB = sqlite3.connect("users.db", check_same_thread=False)
 CURSOR = DB.cursor()
@@ -84,83 +80,154 @@ broadcast_mode = {}
 downloads_count = 0
 
 # ==========================================
-# 3. النصوص بتصميم عصري وأيقونات تفاعلية
+# 3. النصوص المحدثة بـ 4 لغات وتصميم حديـث
 # ==========================================
 TEXT = {
     "ar": {
         "welcome": (
-            "╭━━━ Network Media Downloader ━━━╮\n"
-            "│ ⚡️ <b>مرحباً بك في البوت المطور للتحميل</b>\n"
-            "├─── 🌟 <b>المميزات:</b>\n"
-            "│ 💎 تحميل سريع وبأعلى جودة متاحة\n"
-            "│ 🌀 دعم (YouTube, TikTok, Instagram, ...)\n"
-            "│ 🎧 استخراج الصوت بأعلى نقاء MP3\n"
-            "╰━━━━━━━━━━━━━━━━━━━━━━━━╯\n\n"
-            "⚙️ <b>اختر الجودة المطلوبة قبل إرسال الرابط:</b>"
+            "💎 <b>ULTRA MEDIA DOWNLOADER</b> 💎\n"
+            "━━━ 🚀 <b>نظام التحميل الذكي</b> ━━━\n\n"
+            "✨ <b>مرحباً بك في أسرع بوت تحميل!</b>\n"
+            "🌀 <b>المنصات المدعومة:</b> YouTube, TikTok, Instagram, Twitter...\n"
+            "🎧 <b>استخراج الصوتيات:</b> MP3 عالية النقاوة 320kbps\n\n"
+            "⚙️ <b>يرجى اختيار الجودة المطلوبة للبدء:</b>"
         ),
         "need_sub": (
-            "⚠️ <b>تنبيه: الاشتراك إجباري لاستخدام البوت!</b>\n\n"
-            "🔰 لدعم الاستمرار والتحميل السريع بدون حدود، يرجى الاشتراك في القناة أولاً ثم اضغط على زر التفعيل بالأسفل 👇"
+            "⚠️ <b>الاشتراك إجباري لاستخدام البوت!</b>\n\n"
+            "🔰 نرجو منك الانضمام لقناتنا للاستفادة من كافة خدمات التحميل المجانية، ثم اضغط على زر التفعيل بالأسفل 👇"
         ),
         "sub_btn": "📢 رابط القناة الرسمية",
-        "check_sub": "🔄 اضغط هنا بعد الاشتراك للتفعيل",
-        "checking": "🔍 <b>جاري تحليل الرابط وتجاوز القيود...</b> ⏳",
-        "downloading": "📥 <b>جاري تنزيل المحتوى بالسيرفر...</b> 🚀",
-        "uploading": "📤 <b>جاري رفعه إليك فوراً...</b> ⚡️",
-        "failed": "❌ <b>عذراً، تعذر جلب هذا المقطع!</b>\nتأكد من صحة الرابط أو جرب رابطاً آخر.",
-        "verified": "🎉 <b>تم تفعيل الحساب بنجاح!</b>\n\n🔗 أرسل أي رابط الآن وسأقوم بتحميله فوراً.",
-        "not_subbed": "🚫 عذراً، لم تشترك في القناة بعد!",
-        "quality_selected": "🎯 <b>تم اختيار الجودة:</b> <code>{}</code>\n\n📥 <b>أرسل رابط الفيديو الآن للبدء.</b>",
+        "check_sub": "🔄 اضغط هنا للتفعيل",
+        "checking": "🔍 <b>جاري فحص الرابط وفك القيود...</b> ⏳\n\n<code>[░░░░░░░░░░░░░░░░░░░░] 0%</code>",
+        "downloading": "📥 <b>جاري تحميل المقطع من السيرفر...</b> 🚀\n\n<code>[{}] {}%</code>",
+        "uploading": "📤 <b>جاري إرسال الملف إليك...</b> ⚡️\n\n<code>[████████████████████] 100%</code>",
+        "failed": "❌ <b>تعذر تحميل المقطع!</b>\nتأكد من أن الرابط عام وصحيح ثم حاول مجدداً.",
+        "verified": "🎉 <b>تم التفعيل بنجاح!</b>\n\n🔗 يمكنك الآن إرسال أي رابط للبدء في التحميل.",
+        "not_subbed": "🚫 عذراً، لم تقم بالاشتراك في القناة بعد!",
+        "quality_selected": "🎯 <b>تم وضع الجودة على:</b> <code>{}</code>\n\n📥 <b>أرسل رابط المقطع الآن.</b>",
         "uploader": "المنشئ",
         "duration": "المدة",
         "platform": "المنصة",
         "size": "الحجم",
         "seconds": "ثانية",
-        "visit_channel": "✨ اضغط هنا لزيارة قناتنا الرسمية",
-        "choose_lang": "🌐 <b>اختر لغة واجهة البوت / Language:</b>",
-        "lang_changed": "✅ <b>تم حفظ اللغة بنجاح!</b>",
-        "best_q": "🔥 الجودة الأقصى تلقائياً",
-        "audio_only": "🎵 صوت فقط (MP3 320kbps)"
+        "visit_channel": "✨ القناة الرسمية للمطور",
+        "choose_lang": "🌐 <b>اختر لغة استخدام البوت / Choose Language:</b>",
+        "lang_changed": "✅ <b>تم تحديث اللغة بنجاح!</b>",
+        "best_q": "🔥 الجودة الأقصى (Auto)",
+        "audio_only": "🎵 صوت فقط (MP3 High Quality)"
     },
     "en": {
         "welcome": (
-            "╭━━━ Network Media Downloader ━━━╮\n"
-            "│ ⚡️ <b>Welcome to Ultra Downloader Bot</b>\n"
-            "├─── 🌟 <b>Features:</b>\n"
-            "│ 💎 High speed & Maximum Quality\n"
-            "│ 🌀 Supports (YouTube, TikTok, Insta, ...)\n"
-            "│ 🎧 High Quality MP3 Extraction\n"
-            "╰━━━━━━━━━━━━━━━━━━━━━━━━╯\n\n"
-            "⚙️ <b>Select your preferred quality:</b>"
+            "💎 <b>ULTRA MEDIA DOWNLOADER</b> 💎\n"
+            "━━━ 🚀 <b>Smart Download Engine</b> ━━━\n\n"
+            "✨ <b>Welcome to the fastest downloader!</b>\n"
+            "🌀 <b>Supported Platforms:</b> YouTube, TikTok, Instagram, Twitter...\n"
+            "🎧 <b>Audio Extraction:</b> High Quality 320kbps MP3\n\n"
+            "⚙️ <b>Select your preferred video quality:</b>"
         ),
         "need_sub": (
-            "⚠️ <b>Subscription Required!</b>\n\n"
-            "🔰 Please subscribe to our channel first to unlock all features, then click the verify button below 👇"
+            "⚠️ <b>Mandatory Subscription Required!</b>\n\n"
+            "🔰 Please subscribe to our official channel to enjoy unlimited downloads, then click verify below 👇"
         ),
-        "sub_btn": "📢 Join Official Channel",
-        "check_sub": "🔄 Verify Subscription Now",
-        "checking": "🔍 <b>Analyzing link and bypassing limits...</b> ⏳",
-        "downloading": "📥 <b>Downloading content...</b> 🚀",
-        "uploading": "📤 <b>Uploading to Telegram...</b> ⚡️",
-        "failed": "❌ <b>Download Failed!</b>\nEnsure the link is correct and public.",
-        "verified": "🎉 <b>Account Verified!</b>\n\n🔗 Send any video link now to download.",
+        "sub_btn": "📢 Official Channel",
+        "check_sub": "🔄 Verify Subscription",
+        "checking": "🔍 <b>Analyzing link and bypassing limits...</b> ⏳\n\n<code>[░░░░░░░░░░░░░░░░░░░░] 0%</code>",
+        "downloading": "📥 <b>Downloading content to server...</b> 🚀\n\n<code>[{}] {}%</code>",
+        "uploading": "📤 <b>Sending file to you...</b> ⚡️\n\n<code>[████████████████████] 100%</code>",
+        "failed": "❌ <b>Download Failed!</b>\nEnsure the link is valid and public.",
+        "verified": "🎉 <b>Account Verified!</b>\n\n🔗 You can send any link now to start downloading.",
         "not_subbed": "🚫 You haven't joined the channel yet!",
-        "quality_selected": "🎯 <b>Selected Quality:</b> <code>{}</code>\n\n📥 <b>Send video link now!</b>",
+        "quality_selected": "🎯 <b>Quality set to:</b> <code>{}</code>\n\n📥 <b>Send media link now.</b>",
         "uploader": "Uploader",
         "duration": "Duration",
         "platform": "Platform",
         "size": "Size",
         "seconds": "sec",
-        "visit_channel": "✨ Visit Our Official Channel",
+        "visit_channel": "✨ Official Channel",
         "choose_lang": "🌐 <b>Choose Interface Language:</b>",
         "lang_changed": "✅ <b>Language updated successfully!</b>",
         "best_q": "🔥 Maximum Auto Quality",
-        "audio_only": "🎵 Audio Only (MP3 320kbps)"
+        "audio_only": "🎵 Audio Only (MP3 HQ)"
+    },
+    "tr": {
+        "welcome": (
+            "💎 <b>ULTRA MEDIA DOWNLOADER</b> 💎\n"
+            "━━━ 🚀 <b>Akıllı İndirme Sistemi</b> ━━━\n\n"
+            "✨ <b>En hızlı indirme botuna hoş geldiniz!</b>\n"
+            "🌀 <b>Desteklenen Platformlar:</b> YouTube, TikTok, Instagram...\n"
+            "🎧 <b>Ses Çıkarma:</b> Yüksek Kalite MP3 320kbps\n\n"
+            "⚙️ <b>Lütfen istediğiniz video kalitesini seçin:</b>"
+        ),
+        "need_sub": (
+            "⚠️ <b>Zorunlu Kanal Aboneliği!</b>\n\n"
+            "🔰 Ücretsiz indirme hizmetinden yararlanmak için lütfen kanalımıza katılın ve ardından aşağıdaki doğrulama butonuna basın 👇"
+        ),
+        "sub_btn": "📢 Resmi Kanalımız",
+        "check_sub": "🔄 Aboneliği Doğrula",
+        "checking": "🔍 <b>Bağlantı analiz ediliyor...</b> ⏳\n\n<code>[░░░░░░░░░░░░░░░░░░░░] 0%</code>",
+        "downloading": "📥 <b>İçerik sunucuya indiriliyor...</b> 🚀\n\n<code>[{}] {}%</code>",
+        "uploading": "📤 <b>Dosya size gönderiliyor...</b> ⚡️\n\n<code>[████████████████████] 100%</code>",
+        "failed": "❌ <b>İndirme Başarısız!</b>\nBağlantının geçerli ve herkese açık olduğundan emin olun.",
+        "verified": "🎉 <b>Abonelik Doğrulandı!</b>\n\n🔗 Artık indirmek istediğiniz bağlantıyı gönderebilirsiniz.",
+        "not_subbed": "🚫 Henüz kanala katılmadınız!",
+        "quality_selected": "🎯 <b>Seçilen Kalite:</b> <code>{}</code>\n\n📥 <b>Şimdi medya bağlantısını gönderin.</b>",
+        "uploader": "Yayıncı",
+        "duration": "Süre",
+        "platform": "Platform",
+        "size": "Boyut",
+        "seconds": "sn",
+        "visit_channel": "✨ Resmi Kanalımızı Ziyaret Edin",
+        "choose_lang": "🌐 <b>Arayüz Dilini Seçin / Choose Language:</b>",
+        "lang_changed": "✅ <b>Dil başarıyla güncellendi!</b>",
+        "best_q": "🔥 En Yüksek Kalite (Otomatik)",
+        "audio_only": "🎵 Sadece Ses (MP3 Yüksek Kalite)"
+    },
+    "ru": {
+        "welcome": (
+            "💎 <b>ULTRA MEDIA DOWNLOADER</b> 💎\n"
+            "━━━ 🚀 <b>Умная система скачивания</b> ━━━\n\n"
+            "✨ <b>Добро пожаловать в быстрый загрузчик!</b>\n"
+            "🌀 <b>Поддерживаемые сервисы:</b> YouTube, TikTok, Instagram...\n"
+            "🎧 <b>Извлечение аудио:</b> Высокое качество MP3 320kbps\n\n"
+            "⚙️ <b>Выберите желаемое качество видео:</b>"
+        ),
+        "need_sub": (
+            "⚠️ <b>Обязательная подписка!</b>\n\n"
+            "🔰 Пожалуйста, подпишитесь на наш канал, чтобы использовать бота, затем нажмите кнопку проверки ниже 👇"
+        ),
+        "sub_btn": "📢 Официальный канал",
+        "check_sub": "🔄 Проверить подписку",
+        "checking": "🔍 <b>Анализ ссылки и обход ограничений...</b> ⏳\n\n<code>[░░░░░░░░░░░░░░░░░░░░] 0%</code>",
+        "downloading": "📥 <b>Скачивание файла на сервер...</b> 🚀\n\n<code>[{}] {}%</code>",
+        "uploading": "📤 <b>Отправка файла вам...</b> ⚡️\n\n<code>[████████████████████] 100%</code>",
+        "failed": "❌ <b>Ошибка скачивания!</b>\nУбедитесь, что ссылка правильная и открытая.",
+        "verified": "🎉 <b>Успешно активировано!</b>\n\n🔗 Отправьте ссылку на видео для скачивания.",
+        "not_subbed": "🚫 Вы еще не подписались на канал!",
+        "quality_selected": "🎯 <b>Выбранное качество:</b> <code>{}</code>\n\n📥 <b>Отправьте ссылку прямо сейчас.</b>",
+        "uploader": "Автор",
+        "duration": "Длительность",
+        "platform": "Платформа",
+        "size": "Размер",
+        "seconds": "сек",
+        "visit_channel": "✨ Наш официальный канал",
+        "choose_lang": "🌐 <b>Выберите язык интерфейса:</b>",
+        "lang_changed": "✅ <b>Язык успешно изменен!</b>",
+        "best_q": "🔥 Максимальное качество",
+        "audio_only": "🎵 Только аудио (MP3 HQ)"
     }
 }
 
 # ==========================================
-# 4. إدارة قواعد البيانات واللغات
+# 4. دالة شريط التقدم الوهمي المتدرج (Progress Bar)
+# ==========================================
+def make_progress_bar(percent: int) -> str:
+    total_blocks = 20
+    filled_blocks = int(round(total_blocks * (percent / 100)))
+    bar = "█" * filled_blocks + "░" * (total_blocks - filled_blocks)
+    return bar
+
+# ==========================================
+# 5. إدارة قاعدة البيانات واللغات
 # ==========================================
 def register_user(user_id: int, default_lang: str = "ar"):
     lang = default_lang if default_lang in TEXT else "ar"
@@ -174,7 +241,7 @@ def set_user_lang(user_id: int, lang: str):
 def get_user_lang(user_id: int) -> str:
     CURSOR.execute("SELECT lang FROM users WHERE id = ?", (user_id,))
     res = CURSOR.fetchone()
-    return res[0] if res else "ar"
+    return res[0] if res and res[0] in TEXT else "ar"
 
 def add_download():
     global downloads_count
@@ -190,7 +257,7 @@ def clean_downloads():
             pass
 
 # ==========================================
-# 5. الأزرار ولوحات التحكم
+# 6. لوحات الأزرار القابلة للتكيف
 # ==========================================
 async def is_subscribed(context: ContextTypes.DEFAULT_TYPE, user_id: int) -> bool:
     try:
@@ -212,12 +279,8 @@ def quality_keyboard(lang: str):
             InlineKeyboardButton("🎬 720p HD", callback_data="720"),
             InlineKeyboardButton("🎬 1080p FHD", callback_data="1080"),
         ],
-        [
-            InlineKeyboardButton(TEXT[lang]["best_q"], callback_data="best")
-        ],
-        [
-            InlineKeyboardButton(TEXT[lang]["audio_only"], callback_data="mp3")
-        ]
+        [InlineKeyboardButton(TEXT[lang]["best_q"], callback_data="best")],
+        [InlineKeyboardButton(TEXT[lang]["audio_only"], callback_data="mp3")]
     ])
 
 def language_keyboard():
@@ -225,6 +288,10 @@ def language_keyboard():
         [
             InlineKeyboardButton("🇸🇦 العربية", callback_data="set_lang_ar"),
             InlineKeyboardButton("🇬🇧 English", callback_data="set_lang_en"),
+        ],
+        [
+            InlineKeyboardButton("🇹🇷 Türkçe", callback_data="set_lang_tr"),
+            InlineKeyboardButton("🇷🇺 Русский", callback_data="set_lang_ru"),
         ]
     ])
 
@@ -234,7 +301,7 @@ def channel_button_under_video(lang: str):
     ])
 
 # ==========================================
-# 6. إعدادات yt-dlp للتحميل الذكي
+# 7. إعدادات yt-dlp الذكية وتجاوز حظر الخوادم
 # ==========================================
 def build_ydl_opts(output: str, quality: str):
     common_opts = {
@@ -245,8 +312,14 @@ def build_ydl_opts(output: str, quality: str):
         "fragment_retries": 10,
         "geo_bypass": True,
         "nocheckcertificate": True,
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["ios", "mweb", "android"],
+                "skip": ["dash", "hls"]
+            }
+        },
         "http_headers": {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1"
         }
     }
 
@@ -271,14 +344,14 @@ def build_ydl_opts(output: str, quality: str):
         })
         return common_opts
     else:
-        fmt = "bv*+ba/b"
+        fmt = "bestvideo+bestaudio/best"
 
     common_opts["format"] = fmt
     common_opts["merge_output_format"] = "mp4"
     return common_opts
 
 # ==========================================
-# 7. الأوامر البرمجية والردود
+# 8. الأوامر البرمجية ومعالجة الأحداث
 # ==========================================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -330,7 +403,7 @@ async def quality_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "360": "360p Standard",
         "720": "720p HD",
         "1080": "1080p Full HD",
-        "best": "🔥 Highest Quality",
+        "best": "🔥 Maximum Quality",
         "mp3": "🎵 High Quality MP3"
     }.get(choice, choice)
 
@@ -346,7 +419,7 @@ async def lang_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text(TEXT[selected_lang]["lang_changed"], parse_mode="HTML")
 
 # ==========================================
-# 8. معالجة التنزيل وتجاوز حظر يوتيوب عبر نظام السيرفرات المتعددة
+# 9. محرك التحميل مع شريط تقدم وهمي وتفاعلي
 # ==========================================
 async def handle_media_download(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
@@ -376,63 +449,58 @@ async def handle_media_download(update: Update, context: ContextTypes.DEFAULT_TY
     quality = user_quality.get(user.id, "best")
     output = str(DOWNLOAD_DIR / f"{user.id}_{int(time.time())}_%(title)s.%(ext)s")
 
-    # قائمة النطاقات والبدائل للالتفاف على حظر يوتيوب بالتتابع
-    urls_to_try = [text]
-    if ("youtube.com" in text or "youtu.be" in text) and not os.path.exists("cookies.txt"):
-        urls_to_try = [
-            text.replace("youtube.com", "vid.puffyan.us").replace("youtu.be/", "vid.puffyan.us/watch?v="),
-            text.replace("youtube.com", "invidious.nerdvpn.de").replace("youtu.be/", "invidious.nerdvpn.de/watch?v="),
-            text.replace("youtube.com", "inv.tux.pizza").replace("youtu.be/", "inv.tux.pizza/watch?v="),
-            text.replace("youtube.com", "yewtu.be").replace("youtu.be/", "yewtu.be/watch?v="),
-            text  # التجربة المباشرة كخيار أخير
-        ]
-
-    await status.edit_text(TEXT[lang]["downloading"], parse_mode="HTML")
+    # تشغيل التحميل في الخلفية مع شريط التقدم التفاعلي
     loop = asyncio.get_running_loop()
 
-    success = False
-    last_error = None
-    info, file_path = None, None
+    def worker():
+        opts = build_ydl_opts(output, quality)
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            inf = ydl.extract_info(text, download=True)
+            fpath = ydl.prepare_filename(inf)
+            
+            if quality == "mp3":
+                fpath = os.path.splitext(fpath)[0] + ".mp3"
 
-    for current_url in urls_to_try:
-        def worker():
-            opts = build_ydl_opts(output, quality)
-            with yt_dlp.YoutubeDL(opts) as ydl:
-                inf = ydl.extract_info(current_url, download=True)
-                fpath = ydl.prepare_filename(inf)
-                
-                if quality == "mp3":
-                    fpath = os.path.splitext(fpath)[0] + ".mp3"
+            if not os.path.exists(fpath):
+                base = os.path.splitext(fpath)[0]
+                for ext in (".mp4", ".mkv", ".webm", ".mov", ".mp3"):
+                    if os.path.exists(base + ext):
+                        fpath = base + ext
+                        break
+            return inf, fpath
 
-                if not os.path.exists(fpath):
-                    base = os.path.splitext(fpath)[0]
-                    for ext in (".mp4", ".mkv", ".webm", ".mov", ".mp3"):
-                        if os.path.exists(base + ext):
-                            fpath = base + ext
-                            break
-                return inf, fpath
+    download_task = loop.run_in_executor(None, worker)
 
-        try:
-            info, file_path = await loop.run_in_executor(None, worker)
-            success = True
+    # محاكاة شريط التقدم الحركي
+    progress_steps = [15, 35, 60, 85]
+    for step in progress_steps:
+        if download_task.done():
             break
-        except Exception as e:
-            last_error = e
-            continue
+        await asyncio.sleep(1.2)
+        try:
+            bar_str = make_progress_bar(step)
+            await status.edit_text(TEXT[lang]["downloading"].format(bar_str, step), parse_mode="HTML")
+        except Exception:
+            pass
 
-    if not success:
-        logging.exception(last_error)
+    try:
+        info, file_path = await download_task
+    except Exception as e:
+        logging.exception(e)
         await status.edit_text(
-            f"{TEXT[lang]['failed']}\n\n<code>{last_error}</code>",
+            f"{TEXT[lang]['failed']}\n\n<code>{e}</code>",
             parse_mode="HTML",
         )
         return
 
     try:
+        # إظهار شريط التقدم مكتمل 100% وإشعار الإرسال
+        await status.edit_text(TEXT[lang]["uploading"], parse_mode="HTML")
+
         title = info.get("title", "Media File")
         uploader = info.get("uploader", "Unknown")
         duration = info.get("duration", 0)
-        extractor = "YouTube" if any(domain in text for domain in ["youtube.com", "youtu.be"]) else info.get("extractor_key", "Media")
+        extractor = info.get("extractor_key", "Media")
         size = os.path.getsize(file_path) / (1024 * 1024)
 
         caption = (
@@ -444,7 +512,6 @@ async def handle_media_download(update: Update, context: ContextTypes.DEFAULT_TY
             f"📦 <b>{TEXT[lang]['size']}:</b> {size:.2f} MB"
         )
 
-        await status.edit_text(TEXT[lang]["uploading"], parse_mode="HTML")
         video_keyboard = channel_button_under_video(lang)
         
         with open(file_path, "rb") as media_file:
@@ -477,7 +544,7 @@ async def handle_media_download(update: Update, context: ContextTypes.DEFAULT_TY
         )
 
 # ==========================================
-# 9. لوحة تحكم المسؤول (Admin)
+# 10. لوحة التحكم والإذاعة (Admin)
 # ==========================================
 async def users_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
@@ -530,7 +597,7 @@ async def receive_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 # ==========================================
-# 10. نقطة التشغيل الرئيسية
+# 11. التشغيل الرئيسي
 # ==========================================
 def main():
     clean_downloads()
