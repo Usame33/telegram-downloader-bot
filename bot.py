@@ -37,7 +37,7 @@ BOT_TOKEN = "8629100412:AAGm4yGHRUpRqAzdReY4ZbLw3ESQVtmk26g"
 CHANNEL_USERNAME = "@wanasatt"
 CHANNEL_URL = "https://t.me/wanasatt"
 BOT_URL = "https://t.me/Ussame_bot"
-ADMIN_ID = 123456789  # ضع معرفك هنا للوحة التحكم
+ADMIN_ID = 123456789  # ضع معرفك هنا لوحة التحكم
 
 DOWNLOAD_DIR = Path("downloads")
 DOWNLOAD_DIR.mkdir(exist_ok=True)
@@ -64,7 +64,7 @@ broadcast_mode = {}
 downloads_count = 0
 
 # ==========================
-# 3. النصوص متعددة اللغات (Multi-Language)
+# 3. النصوص متعددة اللغات
 # ==========================
 TEXT = {
     "ar": {
@@ -172,7 +172,7 @@ def clean_downloads():
             pass
 
 # ==========================
-# 5. الاشتراك والإزرار الشفافة
+# 5. الأزرار الشفافة واللوحات
 # ==========================
 async def is_subscribed(context: ContextTypes.DEFAULT_TYPE, user_id: int) -> bool:
     try:
@@ -217,7 +217,7 @@ def channel_button_under_video(lang: str):
     ])
 
 # ==========================
-# 6. إعدادات yt-dlp
+# 6. إعدادات yt-dlp المحدثة لتجاوز الحظر
 # ==========================
 def progress_hook(d):
     if d.get("status") == "downloading":
@@ -235,7 +235,7 @@ def build_ydl_opts(output: str, quality: str):
     elif quality == "1080":
         fmt = "bestvideo[height<=1080]+bestaudio/best[height<=1080]"
     elif quality == "mp3":
-        return {
+        opts = {
             "format": "bestaudio/best",
             "outtmpl": output,
             "quiet": True,
@@ -245,8 +245,16 @@ def build_ydl_opts(output: str, quality: str):
                 "key": "FFmpegExtractAudio",
                 "preferredcodec": "mp3",
                 "preferredquality": "320",
-            }]
+            }],
+            "extractor_args": {
+                "youtube": {
+                    "player_client": ["android", "ios"]
+                }
+            }
         }
+        if os.path.exists("cookies.txt"):
+            opts["cookiefile"] = "cookies.txt"
+        return opts
     else:
         fmt = "bv*+ba/b"
 
@@ -261,7 +269,13 @@ def build_ydl_opts(output: str, quality: str):
         "geo_bypass": True,
         "nocheckcertificate": True,
         "progress_hooks": [progress_hook],
-        "http_headers": {"User-Agent": "Mozilla/5.0"}
+        "http_headers": {"User-Agent": "Mozilla/5.0"},
+        # --- حل مشكلة حظر يوتيوب وتأكيد البوت تلقائياً ---
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["android", "ios"]
+            }
+        }
     }
 
     if os.path.exists("cookies.txt"):
@@ -496,7 +510,7 @@ def main():
     # معالج التحميل والرسائل
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_media_download))
 
-    print("🤖 Bot Started Successfully with Multi-Language Support & Inline Keyboard...")
+    print("🤖 Bot Started Successfully with Anti-Bot Bypass...")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
