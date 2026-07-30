@@ -1,8 +1,20 @@
-import time
-import telebot
-from telebot import types
+import os
+import subprocess
+import sys
 
-# 🔑 توكين البوت الجديد الخاص بك
+# 📦 تثبيت المكتبات تلقائياً عند التشغيل
+try:
+    import telebot
+    from telebot import types
+except ModuleNotFoundError:
+    print("⚡ جاري تثبيت المكتبات المطلوبة تلقائياً...")
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "pyTelegramBotAPI"])
+    import telebot
+    from telebot import types
+
+import time
+
+# 🔑 توكين البوت الخاص بك
 BOT_TOKEN = "8629100412:AAGvnlwDHKjXJUTET5lsfW7zOYZq5ycyrBo"
 
 # 📢 معرف القناة الرسمية للاشتراك الإجباري (يرجى رفع البوت مشرفاً في القناة)
@@ -94,7 +106,6 @@ MESSAGES = {
 
 user_languages = {}
 
-# 🛡️ التحقق من الاشتراك الإجباري
 def check_subscription(user_id):
     try:
         member = bot.get_chat_member(CHANNEL_USERNAME, user_id)
@@ -104,7 +115,6 @@ def check_subscription(user_id):
     except Exception:
         return True
 
-# 🔘 أزرار تغيير اللغة
 def get_language_keyboard():
     markup = types.InlineKeyboardMarkup()
     markup.add(
@@ -114,7 +124,6 @@ def get_language_keyboard():
     )
     return markup
 
-# 🚀 أمر البدء /start
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     user_id = message.from_user.id
@@ -129,7 +138,6 @@ def send_welcome(message):
     markup = get_language_keyboard()
     bot.send_message(message.chat.id, MESSAGES[lang]['welcome'], parse_mode='HTML', reply_markup=markup)
 
-# 🌐 تغيير اللغة عبر الكولباك
 @bot.callback_query_handler(func=lambda call: call.data.startswith('set_lang_'))
 def set_language(call):
     lang_code = call.data.split('_')[2]
@@ -144,7 +152,6 @@ def set_language(call):
     bot.answer_callback_query(call.id, confirm_text[lang_code])
     bot.edit_message_text(confirm_text[lang_code], call.message.chat.id, call.message.message_id)
 
-# 🎬 استقبال المحتوى وتتبع شريط التحميل
 @bot.message_handler(func=lambda message: True)
 def handle_video_request(message):
     user_id = message.from_user.id
@@ -167,7 +174,6 @@ def handle_video_request(message):
 
     bars = ["█░░░░░░░░░ 10%", "███░░░░░░░ 30%", "█████░░░░░ 50%", "███████░░░ 70%", "█████████░ 90%"]
 
-    # حركة شريط التقدم والأنيميشن
     for i, (status, frame) in enumerate(txt['steps']):
         spinner = "⠋" if frame in ["1", "3", "5"] else "⠙"
         bot.edit_message_text(
@@ -178,7 +184,6 @@ def handle_video_request(message):
         )
         time.sleep(0.4)
 
-    # انيميشن الإرسال
     bot.edit_message_text(
         f"{rtl}{txt['upload_title']}\n\n[██████████] 100%\n{txt['upload_status']}",
         chat_id,
@@ -217,8 +222,8 @@ def handle_video_request(message):
     bot.send_message(chat_id, caption, parse_mode='HTML', reply_markup=markup)
 
 if __name__ == "__main__":
-    print("⚡ البوت يعمل الآن بالتوكين الجديد...")
+    print("⚡ البوت يعمل الآن...")
     try:
         bot.infinity_polling(timeout=10, long_polling_timeout=5)
     except Exception as e:
-        print(f"\n❌ حدث خطأ أدى لتوقف البوت:\n{e}\n")
+        print(f"\n❌ حدث خطأ:\n{e}\n")
