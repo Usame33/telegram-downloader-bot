@@ -256,7 +256,7 @@ def channel_button_under_video(lang: str):
     ])
 
 # ==========================
-# 6. إعدادات yt-dlp المُحدثة لكسر الحظر بالكامل
+# 6. إعدادات yt-dlp
 # ==========================
 def progress_hook(d):
     if d.get("status") == "downloading":
@@ -267,12 +267,6 @@ def progress_hook(d):
             progress_cache["percent"] = percent
 
 def build_ydl_opts(output: str, quality: str):
-    # استخدام أكثر العملاء أماناً ضد حظر IP الخوادم
-    youtube_args = {
-        "player_client": ["tv", "web_creator", "android_creator", "mweb"],
-        "player_skip": ["webpage", "configs"]
-    }
-
     common_opts = {
         "outtmpl": output,
         "quiet": True,
@@ -282,7 +276,6 @@ def build_ydl_opts(output: str, quality: str):
         "geo_bypass": True,
         "nocheckcertificate": True,
         "progress_hooks": [progress_hook],
-        "extractor_args": {"youtube": youtube_args},
         "http_headers": {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
@@ -384,7 +377,7 @@ async def lang_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text(TEXT[selected_lang]["lang_changed"], parse_mode="HTML")
 
 # ==========================
-# 8. التحميل والرفع
+# 8. التحميل والرفع (مع تجاوز حظر يوتيوب تلقائياً)
 # ==========================
 async def handle_media_download(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
@@ -410,6 +403,11 @@ async def handle_media_download(update: Update, context: ContextTypes.DEFAULT_TY
     if not text.startswith(("http://", "https://")):
         return
 
+    # توجيه رابط يوتيوب لمرآة وسيطة آمنة إذا لم يجد ملف cookies.txt
+    download_url = text
+    if ("youtube.com" in text or "youtu.be" in text) and not os.path.exists("cookies.txt"):
+        download_url = text.replace("youtube.com", "yewtu.be").replace("youtu.be/", "yewtu.be/watch?v=")
+
     status = await update.message.reply_text(TEXT[lang]["checking"], parse_mode="HTML")
     quality = user_quality.get(user.id, "best")
     output = str(DOWNLOAD_DIR / f"{user.id}_{int(time.time())}_%(title)s.%(ext)s")
@@ -421,7 +419,7 @@ async def handle_media_download(update: Update, context: ContextTypes.DEFAULT_TY
         def worker():
             opts = build_ydl_opts(output, quality)
             with yt_dlp.YoutubeDL(opts) as ydl:
-                info = ydl.extract_info(text, download=True)
+                info = ydl.extract_info(download_url, download=True)
                 file_path = ydl.prepare_filename(info)
                 
                 if quality == "mp3":
@@ -440,7 +438,7 @@ async def handle_media_download(update: Update, context: ContextTypes.DEFAULT_TY
         title = info.get("title", "File")
         uploader = info.get("uploader", "Unknown")
         duration = info.get("duration", 0)
-        extractor = info.get("extractor_key", "Media")
+        extractor = "YouTube" if "yewtu.be" in download_url else info.get("extractor_key", "Media")
         size = os.path.getsize(file_path) / (1024 * 1024)
 
         caption = (
