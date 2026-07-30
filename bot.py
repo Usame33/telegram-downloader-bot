@@ -3,71 +3,96 @@ import subprocess
 import sys
 import time
 
-# 📦 تثبيت المكتبات تلقائياً إذا لم تكن موجودة
+# 📦 التثبيت والتحقق التلقائي من المكتبات المطلوبة
 try:
     import telebot
     from telebot import types
     import yt_dlp
 except ModuleNotFoundError:
-    print("⚡ جاري تثبيت المكتبات المطلوبة تلقائياً...")
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "pyTelegramBotAPI", "yt-dlp"])
+    print("⚡ جاري تثبيت المكتبات المطلوبة لضمان العمل بأعلى كفاءة...")
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "pyTelegramBotAPI", "yt-dlp", "requests"])
     import telebot
     from telebot import types
     import yt_dlp
 
 # 🔑 توكين البوت الخاص بك
 BOT_TOKEN = "8629100412:AAGvnlwDHKjXJUTET5lsfW7zOYZq5ycyrBo"
+
+# 📢 معرف قناتك الرسمية للاشتراك الإجباري (يرجى رفع البوت مشرفاً في القناة)
 CHANNEL_USERNAME = "@wanasatt"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
+# 🌐 نصوص البوت بجميع اللغات مع الأنيميشن
 MESSAGES = {
     'ar': {
         'rtl': "\u200f",
-        'welcome': "👋 <b>أهلاً بك في بوت تحميل المقاطع!</b>\n\nأرسل لي رابط الفيديو (TikTok, Instagram, YouTube) وسأقوم بتحميله فوراً 🚀",
-        'force_sub': "⚠️ <b>عذراً عزيزي، يجب عليك الاشتراك في القناة أولاً لاستخدام البوت:</b>\n\nاشترك ثم أعد إرسال الرابط.",
+        'welcome': "👋 <b>أهلاً بك في بوت التحميل السريع!</b>\n\nأرسل أي رابط (TikTok, Reels, Shorts, Facebook...) وسأقوم بتحميله فوراً بأعلى جودة 🚀",
+        'force_sub': "⚠️ <b>عذراً عزيزي، يجب عليك الاشتراك في القناة لاستخدام البوت:</b>\n\nاشترك أولاً ثم أرسل الرابط مرة أخرى.",
         'btn_sub': "📢 الاشتراك في القناة",
         'btn_lang': "🌐 تغيير اللغة / Language",
-        'loading_title': "⏳ <b>جاري جلب الفيديو وتحميله...</b>",
-        'upload_title': "🚀 <b>جاري رفع الفيديو إلى المحادثة...</b>",
+        'loading_title': "⏳ <b>جاري تحميل الفيديو...</b>",
+        'upload_title': "🚀 <b>جاري الإرسال للمحادثة...</b>",
+        'steps': [
+            ("📥 <i>جاري الاتصال بالخادم...</i>", "█░░░░░░░░░ 10%"),
+            ("📥 <i>جاري سحب المقطع بأعلى جودة...</i>", "████░░░░░░ 40%"),
+            ("📦 <i>جاري تجهيز الملف للإرسال...</i>", "████████░░ 80%"),
+        ],
+        'upload_status': "📤 <i>جاري رفع الفيديو إلى تيليجرام...</i>",
         'success': "✅ <b>تم تحميل الفيديو بنجاح!</b>",
-        'err_download': "❌ <b>عذراً، تعذر تحميل هذا الفيديو! تأكد من صحة الرابط أو حاول لاحقاً.</b>",
+        'err_download': "❌ <b>عذراً، تعذر تحميل هذا الفيديو. تأكد من صحة الرابط وحاول مجدداً.</b>",
         'title': "العنوان",
         'author': "الناشر",
         'duration': "المدة",
+        'platform': "المنصة",
         'sec': "ثانية",
         'bot_name': "البوت",
         'channel_name': "القناة"
     },
     'en': {
         'rtl': "",
-        'welcome': "👋 <b>Welcome to Video Downloader Bot!</b>\n\nSend me a video link (TikTok, Instagram, Shorts) and I'll download it 🚀",
-        'force_sub': "⚠️ <b>Sorry, you must subscribe to our channel first to use this bot:</b>",
-        'btn_sub': "📢 Subscribe to Channel",
+        'welcome': "👋 <b>Welcome to Fast Media Downloader!</b>\n\nSend any video link (TikTok, Reels, Shorts, Facebook...) and I will download it instantly 🚀",
+        'force_sub': "⚠️ <b>Sorry, you must subscribe to our channel to use this bot:</b>\n\nPlease subscribe and send the link again.",
+        'btn_sub': "📢 Join Channel",
         'btn_lang': "🌐 Change Language",
         'loading_title': "⏳ <b>Downloading video...</b>",
         'upload_title': "🚀 <b>Sending video to chat...</b>",
+        'steps': [
+            ("📥 <i>Connecting to server...</i>", "█░░░░░░░░░ 10%"),
+            ("📥 <i>Fetching video in HD...</i>", "████░░░░░░ 40%"),
+            ("📦 <i>Preparing file for Telegram...</i>", "████████░░ 80%"),
+        ],
+        'upload_status': "📤 <i>Uploading video to Telegram...</i>",
         'success': "✅ <b>Video downloaded successfully!</b>",
         'err_download': "❌ <b>Failed to download this video. Please check the link.</b>",
         'title': "Title",
         'author': "Author",
         'duration': "Duration",
+        'platform': "Platform",
         'sec': "seconds",
         'bot_name': "Bot",
         'channel_name': "Channel"
     },
     'tr': {
         'rtl': "",
-        'welcome': "👋 <b>Video İndirme Botuna Hoş Geldiniz!</b>\n\nİndirmek istediğiniz video bağlantısını gönderin 🚀",
+        'welcome': "👋 <b>Hızlı Video İndirme Botuna Hoş Geldiniz!</b>\n\nHerhangi bir video bağlantısını gönderin (TikTok, Reels, Shorts...) anında indireyim 🚀",
         'force_sub': "⚠️ <b>Üzgünüz, botu kullanabilmek için önce kanalımıza abone olmalısınız:</b>",
-        'btn_sub': "📢 Kanala Abone Ol",
+        'btn_sub': "📢 Kanala Katıl",
         'btn_lang': "🌐 Dili Değiştir",
         'loading_title': "⏳ <b>Video indiriliyor...</b>",
-        'upload_title': "🚀 <b>Video sohbete gönderiliyor...</b>",
+        'upload_title': "🚀 <b>Sohbete gönderiliyor...</b>",
+        'steps': [
+            ("📥 <i>Sunucuya bağlanılıyor...</i>", "█░░░░░░░░░ 10%"),
+            ("📥 <i>Video HD kalitede indiriliyor...</i>", "████░░░░░░ 40%"),
+            ("📦 <i>Telegram için hazırlanıyor...</i>", "████████░░ 80%"),
+        ],
+        'upload_status': "📤 <i>Video yükleniyor...</i>",
         'success': "✅ <b>Video başarıyla indirildi!</b>",
+        'err_download': "❌ <b>Bu video indirilemedi. Lütfen bağlantıyı kontrol edin.</b>",
         'title': "Başlık",
         'author': "Yayıncı",
         'duration': "Süre",
+        'platform': "Platform",
         'sec': "saniye",
         'bot_name': "Bot",
         'channel_name': "Kanal"
@@ -115,12 +140,17 @@ def set_language(call):
     bot.answer_callback_query(call.id, confirm_text[lang_code])
     bot.edit_message_text(confirm_text[lang_code], call.message.chat.id, call.message.message_id)
 
-# 🎬 معالجة التحميل الفعلي للرابط
-@bot.message_handler(func=lambda message: message.text and message.text.startswith('http'))
+# 🎬 معالجة وتحميل الفيديو من جميع المنصات مع الأنيميشن
+@bot.message_handler(func=lambda message: message.text and ('http://' in message.text or 'https://' in message.text))
 def handle_download(message):
     user_id = message.from_user.id
     chat_id = message.chat.id
-    url = message.text.strip()
+    
+    urls = [w for w in message.text.split() if w.startswith('http://') or w.startswith('https://')]
+    if not urls:
+        return
+    url = urls[0]
+
     lang = user_languages.get(user_id, 'ar')
     txt = MESSAGES[lang]
     rtl = txt['rtl']
@@ -131,39 +161,54 @@ def handle_download(message):
         bot.send_message(chat_id, txt['force_sub'], parse_mode='HTML', reply_markup=markup)
         return
 
-    msg = bot.send_message(chat_id, f"{rtl}{txt['loading_title']}\n\n⏳ [████░░░░░░] 40%", parse_mode='HTML')
+    # بداية رسالة التحميل والأنيميشن الأول
+    msg = bot.send_message(
+        chat_id, 
+        f"{rtl}{txt['loading_title']} ⠋\n\n[{txt['steps'][0][1]}]\n{txt['steps'][0][0]}", 
+        parse_mode='HTML'
+    )
     
-    output_filename = f"video_{user_id}_{int(time.time())}.mp4"
+    output_filename = f"vid_{user_id}_{int(time.time())}.mp4"
 
-    # إعدادات yt-dlp للتحميل
     ydl_opts = {
-        'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+        'format': 'b[ext=mp4]/bestvideo[ext=mp4]+bestaudio[ext=m4a]/best',
         'outtmpl': output_filename,
         'quiet': True,
         'no_warnings': True,
+        'nocheckcertificate': True,
+        'max_filesize': 50 * 1024 * 1024,
+        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
     }
 
     try:
+        # حركة الأنيميشن الثانية
+        bot.edit_message_text(
+            f"{rtl}{txt['loading_title']} ⠙\n\n[{txt['steps'][1][1]}]\n{txt['steps'][1][0]}",
+            chat_id, msg.message_id, parse_mode='HTML'
+        )
+
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             video_title = info.get('title', 'Video')
             author = info.get('uploader', info.get('uploader_id', 'Unknown'))
             duration = info.get('duration', 0)
+            extractor = info.get('extractor_key', 'Media')
 
-        bot.edit_message_text(f"{rtl}{txt['upload_title']}\n\n🚀 [██████████] 100%", chat_id, msg.message_id, parse_mode='HTML')
+        # حركة أنيميشن رفع الملف
+        bot.edit_message_text(
+            f"{rtl}{txt['upload_title']} ⚡\n\n[██████████ 100%]\n{txt['upload_status']}",
+            chat_id, msg.message_id, parse_mode='HTML'
+        )
 
         caption = f"""
 {rtl}{txt['success']}
 
 ━━━━━━━━━━━━━━━━━━
-
-🎬 <b>{txt['title']}:</b> <code>{video_title[:50]}</code>
+🎬 <b>{txt['title']}:</b> <code>{video_title[:45]}</code>
 👤 <b>{txt['author']}:</b> <code>{author}</code>
 ⏱️ <b>{txt['duration']}:</b> <code>{duration} {txt['sec']}</code>
-
+🌐 <b>{txt['platform']}:</b> <code>{extractor}</code>
 ━━━━━━━━━━━━━━━━━━
-
-🤖 <b>{txt['bot_name']}:</b> @Ussame_bot
 📢 <b>{txt['channel_name']}:</b> {CHANNEL_USERNAME}
 """
         markup = types.InlineKeyboardMarkup()
@@ -172,7 +217,6 @@ def handle_download(message):
             types.InlineKeyboardButton(txt['btn_lang'], callback_data="set_lang_ar")
         )
 
-        # 📹 إرسال ملف الفيديو الحقيقي بـ send_video!
         with open(output_filename, 'rb') as video_file:
             bot.send_video(
                 chat_id,
@@ -185,17 +229,16 @@ def handle_download(message):
         bot.delete_message(chat_id, msg.message_id)
 
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"❌ الخطأ: {e}")
         bot.edit_message_text(f"{rtl}{txt.get('err_download', 'Error')}", chat_id, msg.message_id, parse_mode='HTML')
 
     finally:
-        # مسح الفيديو من السيرفر بعد الإرسال لتوفير المساحة
         if os.path.exists(output_filename):
             os.remove(output_filename)
 
 if __name__ == "__main__":
-    print("⚡ البوت يعمل بنجاح وجاهز لتحميل الفيديوهات الحقيقية...")
+    print("⚡ البوت يعمل بنجاح مع الأنيميشن وسرعة التحميل...")
     try:
-        bot.infinity_polling(timeout=10, long_polling_timeout=5)
+        bot.infinity_polling(timeout=15, long_polling_timeout=5)
     except Exception as e:
-        print(f"\n❌ حدث خطأ:\n{e}\n")
+        print(f"\n❌ خطأ تشغيل:\n{e}\n")
