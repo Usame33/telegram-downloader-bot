@@ -10,7 +10,8 @@ import yt_dlp
 # إعداد السجلات
 logging.basicConfig(format='%(asctime)s - [%(levelname)s] - %(message)s', level=logging.INFO)
 
-TOKEN = "8629100412:AAFtcB8IT7D-aXpTSsy2b1Tcu05Ta4JUft4"
+# 🔑 التوكن الجديد الخاص بك
+TOKEN = "8629100412:AAE3o7PxOhixD91H3yRQtg2MslbCp8k-Mzo"
 CHANNEL_URL = "https://t.me/wanasatt"
 CHANNEL_USERNAME = "@wanasatt"
 
@@ -402,7 +403,7 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_url))
     app.add_handler(CallbackQueryHandler(button_callback))
 
-    print("🚀 VideoHub Downloader يعمل الآن مع التجهيزات الكاملة...")
+    print("🚀 VideoHub Downloader يعمل الآن مع التوكين الجديد...")
     app.run_polling()
 
 if __name__ == '__main__':
