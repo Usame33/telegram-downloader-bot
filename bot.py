@@ -2,6 +2,8 @@ import os
 import re
 import asyncio
 import logging
+import aiohttp
+from aiohttp import web
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder,
@@ -26,7 +28,7 @@ BOT_URL = "https://t.me/Ussame_bot"
 # قاموس اللغات (عربي / إنجليزي)
 TEXTS = {
     'ar': {
-        'welcome': "👋 أهلاً بك في بوت تحميل الفيديوهات السريع!\n\nأرسل لي رابط الفيديو من أي منصة (YouTube, TikTok, Instagram, Twitter...) وستتمكن من اختيارات الجودة وتنزيله فوراً.",
+        'welcome': "👋 أهلاً بك في بوت تحميل الفيديوهات السريع!\n\nأرسل لي رابط الفيديو من أي منصة (YouTube, TikTok, Instagram, Twitter...) وستتمكن من اختيار الجودة وتنزيله فوراً.",
         'select_quality': "🎬 اختر الجودة المطلوبة للتحميل:",
         'downloading': "⏳ جاري تحميل الفيديو ودمج الملفات، يرجى الانتظار...",
         'uploading': "📤 جاري رفع الفيديو إلى تلجرام...",
@@ -90,7 +92,6 @@ async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
     url = update.message.text.strip()
     user_lang = context.user_data.get('lang', 'ar')
 
-    # التحقق البسيط من صحة الرابط
     if not re.match(r'https?://[^\s]+', url):
         return
 
@@ -99,7 +100,7 @@ async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=get_quality_keyboard(url, user_lang)
     )
 
-# معالجة الضغط على الأزرار (تغيير اللغة أو بدء التنزيل)
+# معالجة الضغط على الأزرار
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -107,7 +108,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = query.data
     user_lang = context.user_data.get('lang', 'ar')
 
-    # تبديل اللغة
     if data.startswith("toggle_lang_"):
         new_lang = data.split("_")[2]
         context.user_data['lang'] = new_lang
@@ -117,18 +117,14 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # معالجة طلب التنزيل
     if data.startswith("dl|"):
         _, quality, video_url = data.split("|", 2)
-        
         status_msg = await query.message.reply_text(TEXTS[user_lang]['downloading'])
         
-        # إعدادات yt-dlp لتخطي قيود يوتيوب وسرعة التحميل
         ydl_opts = {
             'outtmpl': 'downloads/%(id)s.%(ext)s',
             'quiet': True,
             'no_warnings': True,
-            # تخطي قيود الحظر والعمر بالعملاء المدمجين (Android/iOS)
             'extractor_args': {
                 'youtube': {
                     'player_client': ['android', 'ios'],
@@ -139,7 +135,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             }
         }
 
-        # تحديد صياغة الجودة المطلوب تحميلها
         if quality == 'audio':
             ydl_opts['format'] = 'bestaudio/best'
             ydl_opts['postprocessors'] = [{
@@ -152,14 +147,11 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             ydl_opts['format'] = f'bestvideo[height<={quality}]+bestaudio/best'
 
-        # تنزيل الملف في خيط منفصل لتفادي تجميد البوت
         loop = asyncio.get_event_loop()
         try:
             filename = await loop.run_in_executor(None, lambda: download_video(video_url, ydl_opts))
-            
             await status_msg.edit_text(TEXTS[user_lang]['uploading'])
 
-            # إرسال الملف للمستخدم
             with open(filename, 'rb') as file:
                 if quality == 'audio' or filename.endswith('.mp3'):
                     await query.message.reply_audio(audio=file, caption="Downloaded by @Ussame_bot")
@@ -168,7 +160,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             await status_msg.delete()
 
-            # مسح الملف من السيرفر بعد الإرسال لتوفير المساحة
             if os.path.exists(filename):
                 os.remove(filename)
 
@@ -183,6 +174,35 @@ def download_video(url, opts):
         info = ydl.extract_info(url, download=True)
         return ydl.prepare_filename(info)
 
+# --- نظام الحفاظ على البوت مستيقظاً 24/7 ---
+async def handle_ping(request):
+    return web.Response(text="Bot is Alive and Running!")
+
+async def start_web_server():
+    app = web.Application()
+    app.router.add_get("/", handle_ping)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    port = int(os.environ.get("PORT", 8080))
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+
+async def self_ping_loop():
+    # الانتظار قليلاً حتى يبدأ تشغيل السيرفر تماماً
+    await asyncio.sleep(15)
+    url = os.environ.get("RENDER_EXTERNAL_URL")
+    if not url:
+        return
+    async with aiohttp.ClientSession() as session:
+        while True:
+            await asyncio.sleep(600)  # يرسل طلباً لنفسه كل 10 دقائق
+            try:
+                async with session.get(url) as resp:
+                    pass
+            except Exception:
+                pass
+# ---------------------------------------------
+
 def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
@@ -190,7 +210,12 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_url))
     app.add_handler(CallbackQueryHandler(button_callback))
 
-    print("⚡ Bot is running successfully...")
+    # تشغيل مهام الويب والتنبيه الذاتي جنباً إلى جنب مع البوت
+    loop = asyncio.get_event_loop()
+    loop.create_task(start_web_server())
+    loop.create_task(self_ping_loop())
+
+    print("⚡ Bot is running 24/7 successfully...")
     app.run_polling()
 
 if __name__ == '__main__':
