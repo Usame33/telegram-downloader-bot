@@ -25,7 +25,6 @@ BOT_TOKEN = "8629100412:AAFL7o3P67F2XlU7PqKeRjcrs3rqSBTYtnA"
 CHANNEL_URL = "https://t.me/wanasatt"
 BOT_URL = "https://t.me/Ussame_bot"
 
-# قاموس اللغات (عربي / إنجليزي)
 TEXTS = {
     'ar': {
         'welcome': "👋 أهلاً بك في بوت تحميل الفيديوهات السريع!\n\nأرسل لي رابط الفيديو من أي منصة (YouTube, TikTok, Instagram, Twitter...) وستتمكن من اختيار الجودة وتنزيله فوراً.",
@@ -53,7 +52,6 @@ TEXTS = {
     }
 }
 
-# لوحة الأزرار التفاعلية الرئيسية
 def get_main_keyboard(lang: str = 'ar') -> InlineKeyboardMarkup:
     keyboard = [
         [
@@ -66,7 +64,6 @@ def get_main_keyboard(lang: str = 'ar') -> InlineKeyboardMarkup:
     ]
     return InlineKeyboardMarkup(keyboard)
 
-# لوحة اختيار الجودات
 def get_quality_keyboard(video_url: str, lang: str = 'ar') -> InlineKeyboardMarkup:
     keyboard = [
         [InlineKeyboardButton(TEXTS[lang]['best_option'], callback_data=f"dl|best|{video_url}")],
@@ -79,7 +76,6 @@ def get_quality_keyboard(video_url: str, lang: str = 'ar') -> InlineKeyboardMark
     ]
     return InlineKeyboardMarkup(keyboard)
 
-# أمر /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_lang = context.user_data.get('lang', 'ar')
     await update.message.reply_text(
@@ -87,7 +83,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=get_main_keyboard(user_lang)
     )
 
-# استقبال الروابط
 async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
     url = update.message.text.strip()
     user_lang = context.user_data.get('lang', 'ar')
@@ -100,7 +95,6 @@ async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=get_quality_keyboard(url, user_lang)
     )
 
-# معالجة الضغط على الأزرار
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -147,7 +141,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             ydl_opts['format'] = f'bestvideo[height<={quality}]+bestaudio/best'
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         try:
             filename = await loop.run_in_executor(None, lambda: download_video(video_url, ydl_opts))
             await status_msg.edit_text(TEXTS[user_lang]['uploading'])
@@ -174,9 +168,9 @@ def download_video(url, opts):
         info = ydl.extract_info(url, download=True)
         return ydl.prepare_filename(info)
 
-# --- نظام الحفاظ على البوت مستيقظاً 24/7 ---
+# --- سيرفر الويب وتنبيه الذات لتفادي الخمول ---
 async def handle_ping(request):
-    return web.Response(text="Bot is Alive and Running!")
+    return web.Response(text="Bot is Alive!")
 
 async def start_web_server():
     app = web.Application()
@@ -188,34 +182,32 @@ async def start_web_server():
     await site.start()
 
 async def self_ping_loop():
-    # الانتظار قليلاً حتى يبدأ تشغيل السيرفر تماماً
-    await asyncio.sleep(15)
+    await asyncio.sleep(10)
     url = os.environ.get("RENDER_EXTERNAL_URL")
     if not url:
         return
     async with aiohttp.ClientSession() as session:
         while True:
-            await asyncio.sleep(600)  # يرسل طلباً لنفسه كل 10 دقائق
+            await asyncio.sleep(600)
             try:
                 async with session.get(url) as resp:
                     pass
             except Exception:
                 pass
-# ---------------------------------------------
+
+async def post_init(application):
+    # تشغيل المهام الجانبية فور اكتمال تهيئة البوت
+    asyncio.create_task(start_web_server())
+    asyncio.create_task(self_ping_loop())
 
 def main():
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    app = ApplicationBuilder().token(BOT_TOKEN).post_init(post_init).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_url))
     app.add_handler(CallbackQueryHandler(button_callback))
 
-    # تشغيل مهام الويب والتنبيه الذاتي جنباً إلى جنب مع البوت
-    loop = asyncio.get_event_loop()
-    loop.create_task(start_web_server())
-    loop.create_task(self_ping_loop())
-
-    print("⚡ Bot is running 24/7 successfully...")
+    print("⚡ Bot is running successfully...")
     app.run_polling()
 
 if __name__ == '__main__':
