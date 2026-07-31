@@ -1,3 +1,7 @@
-python-telegram-bot>=20.0
+pyTelegramBotAPI==4.28.0
 yt-dlp
+ffmpeg-python
+requests
+python-dotenv
 aiohttp
+Pillow 
