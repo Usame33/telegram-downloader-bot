@@ -9,9 +9,9 @@ import yt_dlp
 # إعدادات تسجيل الأخطاء
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-API_ID = os.getenv("API_ID", "YOUR_API_ID")
-API_HASH = os.getenv("API_HASH", "YOUR_API_HASH")
-BOT_TOKEN = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN")
+API_ID = int(os.getenv("API_ID", "28373809")) # ضع API_ID الخاص بك هنا إذا لم تضفه في Render
+API_HASH = os.getenv("API_HASH", "YOUR_API_HASH") # ضع API_HASH الخاص بك هنا
+BOT_TOKEN = os.getenv("BOT_TOKEN", "8629100412:AAF1Nt7eBMTucCNtEwfd63NRKK3cX2i64UE")
 MUST_JOIN_CHANNEL = os.getenv("CHANNEL_USERNAME", "wanasatt") # معرف قناتك بدون @
 
 bot = Client("MediaDownloaderBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
@@ -180,7 +180,6 @@ def get_text(user_id, key):
     lang = USER_LANG.get(user_id, "ar")
     return TEXTS.get(lang, TEXTS["ar"]).get(key, "")
 
-# لوحة مفاتيح خيارات القائمة الرئيسية
 def build_main_keyboard(user_id):
     return InlineKeyboardMarkup([
         [
@@ -192,7 +191,6 @@ def build_main_keyboard(user_id):
         ]
     ])
 
-# لوحة لغات الواجهة الـ 10
 def build_lang_keyboard():
     buttons = []
     keys = list(TEXTS.keys())
@@ -256,7 +254,6 @@ async def check_sub_cb(client: Client, callback: CallbackQuery):
     else:
         await callback.answer(get_text(user_id, "not_subbed"), show_alert=True)
 
-# استقبال معالجة الروابط
 @bot.on_message(filters.private & filters.text & ~filters.command(["start"]))
 async def handle_url(client: Client, message: Message):
     user_id = message.from_user.id
@@ -308,7 +305,6 @@ async def handle_url(client: Client, message: Message):
         logging.error(f"Fetch Error: {e}")
         await msg.edit_text(get_text(user_id, "error").format(error=str(e)[:120]))
 
-# تنزيل الملف المحدد وإرساله للمستخدم
 @bot.on_callback_query(filters.regex("^dl_"))
 async def process_dl(client: Client, callback: CallbackQuery):
     user_id = callback.from_user.id
@@ -333,7 +329,6 @@ async def process_dl(client: Client, callback: CallbackQuery):
     if os.path.exists(COOKIE_PATH):
         ydl_opts['cookiefile'] = COOKIE_PATH
 
-    # تحديد الصيغة والجودة
     if fmt == "audio":
         ydl_opts['format'] = 'bestaudio/best'
     elif fmt == "720":
