@@ -182,7 +182,7 @@ async def handle_url(client: Client, message: Message):
     if os.path.exists(COOKIE_PATH):
         ydl_opts['cookiefile'] = COOKIE_PATH
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     try:
         def fetch_info():
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -245,7 +245,7 @@ async def process_dl(client: Client, callback: CallbackQuery):
     else:
         ydl_opts['format'] = 'b[ext=mp4]/best'
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
 
     try:
         def do_download():
@@ -284,5 +284,10 @@ async def process_dl(client: Client, callback: CallbackQuery):
                 except Exception:
                     pass
 
+async def main():
+    await bot.start()
+    logging.info("Bot started successfully!")
+    await asyncio.Event().wait()
+
 if __name__ == "__main__":
-    bot.run()
+    asyncio.run(main())
