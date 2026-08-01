@@ -9,10 +9,10 @@ import yt_dlp
 # إعدادات تسجيل الأخطاء
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-API_ID = int(os.getenv("API_ID", "28373809")) # ضع API_ID الخاص بك هنا إذا لم تضفه في Render
-API_HASH = os.getenv("API_HASH", "YOUR_API_HASH") # ضع API_HASH الخاص بك هنا
+API_ID = int(os.getenv("API_ID", "28373809"))
+API_HASH = os.getenv("API_HASH", "b6b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2") # أو ضع API_HASH الخاص بك هنا إذا كان لديك
 BOT_TOKEN = os.getenv("BOT_TOKEN", "8629100412:AAF1Nt7eBMTucCNtEwfd63NRKK3cX2i64UE")
-MUST_JOIN_CHANNEL = os.getenv("CHANNEL_USERNAME", "wanasatt") # معرف قناتك بدون @
+MUST_JOIN_CHANNEL = os.getenv("CHANNEL_USERNAME", "wanasatt")
 
 bot = Client("MediaDownloaderBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
