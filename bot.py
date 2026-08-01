@@ -9,10 +9,11 @@ import yt_dlp
 # إعدادات تسجيل الأخطاء
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-API_ID = int(os.getenv("API_ID", "28373809"))
-API_HASH = os.getenv("API_HASH", "b6b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2") # أو ضع API_HASH الخاص بك هنا إذا كان لديك
+# البيانات الخاصة بك المأخوذة من my.telegram.org
+API_ID = int(os.getenv("API_ID", "32636127"))
+API_HASH = os.getenv("API_HASH", "fc5ce2f719114cb68ccdc24a564e15e0")
 BOT_TOKEN = os.getenv("BOT_TOKEN", "8629100412:AAF1Nt7eBMTucCNtEwfd63NRKK3cX2i64UE")
-MUST_JOIN_CHANNEL = os.getenv("CHANNEL_USERNAME", "wanasatt")
+MUST_JOIN_CHANNEL = os.getenv("CHANNEL_USERNAME", "wanasatt") # معرف قناتك بدون @
 
 bot = Client("MediaDownloaderBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
@@ -94,7 +95,7 @@ TEXTS = {
         "downloading": "📥 **Descargando...**", "error": "❌ **Error:**\n`{error}`",
         "btn_best": "🌟 Mejor Calidad", "btn_720": "🎥 Video 720p", "btn_480": "🎬 Video 480p", "btn_audio": "🎵 Audio MP3",
         "btn_lang": "🌐 Cambiar idioma", "btn_channel": "📢 Canal", "btn_help": "ℹ️ Ayuda",
-        "help_msg": "🛠 Send link and download video/audio instantly."
+        "help_msg": "🛠 Envíe el enlace y elija formato."
     },
     "fr": {
         "flag": "🇫🇷", "name": "Français",
