@@ -228,15 +228,15 @@ def process_dl(call):
     if os.path.exists(COOKIE_PATH):
         ydl_opts['cookiefile'] = COOKIE_PATH
 
-    # --- صيغ مجربة ومرنة مع يوتيوب بدون حظر صيغة ---
+    # --- صيغ مجربة تعطي الأولوية للفيديو المدمج الجاهز ---
     if fmt == "audio":
-        ydl_opts['format'] = 'bestaudio/best'
+        ydl_opts['format'] = 'ba/ba*/best'
     elif fmt == "720":
-        ydl_opts['format'] = 'bestvideo[height<=720]+bestaudio/best[height<=720]/best'
+        ydl_opts['format'] = 'b[height<=720]/best[height<=720]/bv*[height<=720]+ba/best'
     elif fmt == "480":
-        ydl_opts['format'] = 'bestvideo[height<=480]+bestaudio/best[height<=480]/best'
+        ydl_opts['format'] = 'b[height<=480]/best[height<=480]/bv*[height<=480]+ba/best'
     else:
-        ydl_opts['format'] = 'bestvideo+bestaudio/best'
+        ydl_opts['format'] = 'b/best/bv*+ba'
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -263,7 +263,7 @@ def process_dl(call):
 
     except Exception as e:
         logging.error(f"DL Error: {e}")
-        bot.edit_message_text(get_text(user_id, "error").format(error=str(e)[:150]), call.message.chat.id, call.message.message_id, parse_mode="Markdown")
+        bot.edit_message_text(get_text(user_id, "error").format(error=str(e)[:150]), chat_id=msg.chat.id, message_id=msg.message_id, parse_mode="Markdown")
 
     finally:
         for file in os.listdir("."):
