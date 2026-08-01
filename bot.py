@@ -228,14 +228,15 @@ def process_dl(call):
     if os.path.exists(COOKIE_PATH):
         ydl_opts['cookiefile'] = COOKIE_PATH
 
+    # --- صيغ مجربة ومرنة مع يوتيوب بدون حظر صيغة ---
     if fmt == "audio":
         ydl_opts['format'] = 'bestaudio/best'
     elif fmt == "720":
-        ydl_opts['format'] = 'b[height<=720][ext=mp4]/best[height<=720]/best'
+        ydl_opts['format'] = 'bestvideo[height<=720]+bestaudio/best[height<=720]/best'
     elif fmt == "480":
-        ydl_opts['format'] = 'b[height<=480][ext=mp4]/best[height<=480]/best'
+        ydl_opts['format'] = 'bestvideo[height<=480]+bestaudio/best[height<=480]/best'
     else:
-        ydl_opts['format'] = 'b[ext=mp4]/best'
+        ydl_opts['format'] = 'bestvideo+bestaudio/best'
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
