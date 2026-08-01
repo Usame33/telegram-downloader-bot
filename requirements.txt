@@ -1,7 +1,4 @@
-pyTelegramBotAPI==4.28.0
+pyrogram==2.0.106
+tgcrypto==1.2.5
 yt-dlp
-ffmpeg-python
-requests
-python-dotenv
 aiohttp
-Pillow 
