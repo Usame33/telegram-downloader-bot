@@ -2,29 +2,42 @@ import os
 import re
 import logging
 import asyncio
+from threading import Thread
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, Message
 import yt_dlp
 
-# إعدادات تسجيل الأخطاء
+# --- سيرفر وهمي لمنع Render من إغلاق الـ Web Service ---
+class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Bot is running alive!")
+
+def run_web_server():
+    port = int(os.environ.get("PORT", 8080))
+    server = HTTPServer(('0.0.0.0', port), SimpleHTTPRequestHandler)
+    server.serve_forever()
+
+# تشغيل خادم الويب في الخلفية
+Thread(target=run_web_server, daemon=True).start()
+
+# --- إعدادات تسجيل الأخطاء ---
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-# البيانات الخاصة بك المأخوذة من my.telegram.org
+# البيانات الخاصة بك
 API_ID = int(os.getenv("API_ID", "32636127"))
 API_HASH = os.getenv("API_HASH", "fc5ce2f719114cb68ccdc24a564e15e0")
 BOT_TOKEN = os.getenv("BOT_TOKEN", "8629100412:AAF1Nt7eBMTucCNtEwfd63NRKK3cX2i64UE")
-MUST_JOIN_CHANNEL = os.getenv("CHANNEL_USERNAME", "wanasatt") # معرف قناتك بدون @
+MUST_JOIN_CHANNEL = os.getenv("CHANNEL_USERNAME", "wanasatt")
 
 bot = Client("MediaDownloaderBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
-# تخزين لغة المستخدم والروابط المؤقتة
 USER_LANG = {}
 TEMP_DATA = {}
-
-# مسار الكوكيز المباشر
 COOKIE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cookies.txt")
 
-# 🌍 قاموس النصوص واللغات الـ 10 الكاملة
 TEXTS = {
     "ar": {
         "flag": "🇸🇾", "name": "العربية",
@@ -67,113 +80,6 @@ TEXTS = {
         "btn_channel": "📢 Channel",
         "btn_help": "ℹ️ Help",
         "help_msg": "🛠 **How to use:**\n1. Send any valid link.\n2. Choose your preferred quality or MP3 format.\n3. The bot will download and send it to you."
-    },
-    "tr": {
-        "flag": "🇹🇷", "name": "Türkçe",
-        "welcome": "✨ **Gelişmiş Medya İndirme Botuna Hoş Geldiniz!**\n\n📌 Başlamak için bir bağlantı gönderin!",
-        "sub_required": "⚠️ **Botu kullanmak için kanala katılmalısınız:**\n📢 @{channel}",
-        "sub_btn": "📢 Kanala Katıl", "verify_btn": "✅ Onayla",
-        "sub_success": "🎉 Katıldığınız için teşekkürler!",
-        "not_subbed": "❌ Henüz katılmadınız!",
-        "lang_select": "🌐 **Dil seçiniz:**",
-        "processing": "🔍 **Bağlantı işleniyor...**",
-        "choose_format": "🎬 **Video Detayları:**\n📌 `{title}`\n\n👇 **Format seçin:**",
-        "downloading": "📥 **İndiriliyor...**",
-        "error": "❌ **Hata:**\n`{error}`",
-        "btn_best": "🌟 En İyi Kalite", "btn_720": "🎥 Video 720p", "btn_480": "🎬 Video 480p", "btn_audio": "🎵 Ses MP3",
-        "btn_lang": "🌐 Dili Değiştir", "btn_channel": "📢 Kanalımız", "btn_help": "ℹ️ Yardım",
-        "help_msg": "🛠 **Kullanım:** Bağlantı gönderin ve indirme butonuna tıklayın."
-    },
-    "es": {
-        "flag": "🇪🇸", "name": "Español",
-        "welcome": "✨ **¡Bienvenido al Bot Descargador Profesional!**\n\n📌 ¡Envía un enlace para comenzar!",
-        "sub_required": "⚠️ **Debes suscribirte al canal:**\n📢 @{channel}",
-        "sub_btn": "📢 Unirse al Canal", "verify_btn": "✅ Verificar",
-        "sub_success": "🎉 ¡Gracias por suscribirte!", "not_subbed": "❌ ¡Aún no estás suscrito!",
-        "lang_select": "🌐 **Selecciona tu idioma:**", "processing": "🔍 **Procesando enlace...**",
-        "choose_format": "🎬 **Detalles:**\n📌 `{title}`\n\n👇 **Elige formato:**",
-        "downloading": "📥 **Descargando...**", "error": "❌ **Error:**\n`{error}`",
-        "btn_best": "🌟 Mejor Calidad", "btn_720": "🎥 Video 720p", "btn_480": "🎬 Video 480p", "btn_audio": "🎵 Audio MP3",
-        "btn_lang": "🌐 Cambiar idioma", "btn_channel": "📢 Canal", "btn_help": "ℹ️ Ayuda",
-        "help_msg": "🛠 Envíe el enlace y elija formato."
-    },
-    "fr": {
-        "flag": "🇫🇷", "name": "Français",
-        "welcome": "✨ **Bienvenue sur le Bot Téléchargeur!**\n\n📌 Envoyez un lien pour commencer!",
-        "sub_required": "⚠️ **Abonnez-vous au canal:**\n📢 @{channel}",
-        "sub_btn": "📢 Rejoindre le canal", "verify_btn": "✅ Vérifier",
-        "sub_success": "🎉 Merci pour l'abonnement!", "not_subbed": "❌ Pas encore abonné!",
-        "lang_select": "🌐 **Choisissez votre langue:**", "processing": "🔍 **Traitement du lien...**",
-        "choose_format": "🎬 **Titre:** `{title}`\n\n👇 **Format:**",
-        "downloading": "📥 **Téléchargement...**", "error": "❌ **Erreur:**\n`{error}`",
-        "btn_best": "🌟 Meilleure Qualité", "btn_720": "🎥 Vidéo 720p", "btn_480": "🎬 Vidéo 480p", "btn_audio": "🎵 MP3",
-        "btn_lang": "🌐 Changer la langue", "btn_channel": "📢 Canal", "btn_help": "ℹ️ Aide",
-        "help_msg": "🛠 Envoyez le lien et sélectionnez le format."
-    },
-    "de": {
-        "flag": "🇩🇪", "name": "Deutsch",
-        "welcome": "✨ **Willkommen beim Downloader Bot!**\n\n📌 Senden Sie einen Link!",
-        "sub_required": "⚠️ **Kanal abonnieren:**\n📢 @{channel}",
-        "sub_btn": "📢 Kanal beitreten", "verify_btn": "✅ Bestätigen",
-        "sub_success": "🎉 Danke!", "not_subbed": "❌ Nicht abonniert!",
-        "lang_select": "🌐 **Sprache wählen:**", "processing": "🔍 **Verarbeite...**",
-        "choose_format": "🎬 **Titel:** `{title}`",
-        "downloading": "📥 **Lade herunter...**", "error": "❌ **Fehler:**\n`{error}`",
-        "btn_best": "🌟 Beste Qualität", "btn_720": "🎥 Video 720p", "btn_480": "🎬 Video 480p", "btn_audio": "🎵 MP3 Audio",
-        "btn_lang": "🌐 Sprache ändern", "btn_channel": "📢 Kanal", "btn_help": "ℹ️ Hilfe",
-        "help_msg": "🛠 Link senden und herunterladen."
-    },
-    "ru": {
-        "flag": "🇷🇺", "name": "Русский",
-        "welcome": "✨ **Добро пожаловать в Профессиональный Загрузчик!**\n\n📌 Отправьте ссылку для начала!",
-        "sub_required": "⚠️ **Подпишитесь на канал:**\n📢 @{channel}",
-        "sub_btn": "📢 Подписаться", "verify_btn": "✅ Проверить",
-        "sub_success": "🎉 Спасибо!", "not_subbed": "❌ Вы не подписаны!",
-        "lang_select": "🌐 **Выберите язык:**", "processing": "🔍 **Обработка...**",
-        "choose_format": "🎬 **Название:** `{title}`",
-        "downloading": "📥 **Загрузка...**", "error": "❌ **Ошибка:**\n`{error}`",
-        "btn_best": "🌟 Лучшее качество", "btn_720": "🎥 Видео 720p", "btn_480": "🎬 Видео 480p", "btn_audio": "🎵 Аудио MP3",
-        "btn_lang": "🌐 Сменить язык", "btn_channel": "📢 Канал", "btn_help": "ℹ️ Помощь",
-        "help_msg": "🛠 Отправьте ссылку и выберите качество."
-    },
-    "hi": {
-        "flag": "🇮🇳", "name": "हिन्दी",
-        "welcome": "✨ **डाउनलोडर बॉट में आपका स्वागत है!**",
-        "sub_required": "⚠️ **कृपया चैनल की सदस्यता लें:**\n📢 @{channel}",
-        "sub_btn": "📢 चैनल से जुड़ें", "verify_btn": "✅ पुष्टि करें",
-        "sub_success": "🎉 धन्यवाद!", "not_subbed": "❌ सदस्यता नहीं ली गई!",
-        "lang_select": "🌐 **भाषा चुनें:**", "processing": "🔍 **प्रोसेसिंग...**",
-        "choose_format": "🎬 **शीर्षक:** `{title}`",
-        "downloading": "📥 **डाउनलोड हो रहा है...**", "error": "❌ **त्रुटि:**\n`{error}`",
-        "btn_best": "🌟 सर्वोत्तम गुणवत्ता", "btn_720": "🎥 वीडियो 720p", "btn_480": "🎬 वीडियो 480p", "btn_audio": "🎵 ऑडियो MP3",
-        "btn_lang": "🌐 भाषा बदलें", "btn_channel": "📢 चैनल", "btn_help": "ℹ️ सहायता",
-        "help_msg": "🛠 लिंक भेजें और डाउनलोड करें।"
-    },
-    "zh": {
-        "flag": "🇨🇳", "name": "中文",
-        "welcome": "✨ **欢迎使用专业媒体下载机器人！**",
-        "sub_required": "⚠️ **请先关注频道：**\n📢 @{channel}",
-        "sub_btn": "📢 加入频道", "verify_btn": "✅ 验证",
-        "sub_success": "🎉 感谢！", "not_subbed": "❌ 未关注！",
-        "lang_select": "🌐 **选择语言：**", "processing": "🔍 **处理中...**",
-        "choose_format": "🎬 **标题:** `{title}`",
-        "downloading": "📥 **下载中...**", "error": "❌ **错误:**\n`{error}`",
-        "btn_best": "🌟 最高画质", "btn_720": "🎥 720p 视频", "btn_480": "🎬 480p 视频", "btn_audio": "🎵 MP3 音频",
-        "btn_lang": "🌐 切换语言", "btn_channel": "📢 官方频道", "btn_help": "ℹ️ 帮助",
-        "help_msg": "🛠 发送链接并选择画质即可下载。"
-    },
-    "fa": {
-        "flag": "🇮🇷", "name": "فارسی",
-        "welcome": "✨ **به ربات دانلودر حرفه‌ای خوش آمدید!**",
-        "sub_required": "⚠️ **ابتدا عضو کانال شوید:**\n📢 @{channel}",
-        "sub_btn": "📢 عضویت در کانال", "verify_btn": "✅ تایید عضویت",
-        "sub_success": "🎉 با تشکر!", "not_subbed": "❌ عضو نشده‌اید!",
-        "lang_select": "🌐 **انتخاب زبان:**", "processing": "🔍 **در حال پردازش...**",
-        "choose_format": "🎬 **عنوان:** `{title}`",
-        "downloading": "📥 **در حال دانلود...**", "error": "❌ **خطا:**\n`{error}`",
-        "btn_best": "🌟 بهترین کیفیت", "btn_720": "🎥 ویدیو 720p", "btn_480": "🎬 ویدیو 480p", "btn_audio": "🎵 صوتی MP3",
-        "btn_lang": "🌐 تغییر زبان", "btn_channel": "📢 کانال", "btn_help": "ℹ️ راهنما",
-        "help_msg": "🛠 لینک را ارسال کرده و کیفیت مورد نظر را انتخاب کنید."
     }
 }
 
