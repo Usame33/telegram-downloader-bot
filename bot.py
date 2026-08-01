@@ -1,14 +1,13 @@
 import os
 import re
 import logging
-import asyncio
 from threading import Thread
 from http.server import HTTPServer, BaseHTTPRequestHandler
-from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, Message
+import telebot
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import yt_dlp
 
-# --- سيرفر وهمي لمنع Render من إغلاق الـ Web Service ---
+# --- سيرفر وهمي لإبقاء Render سعيداً ---
 class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
@@ -20,19 +19,16 @@ def run_web_server():
     server = HTTPServer(('0.0.0.0', port), SimpleHTTPRequestHandler)
     server.serve_forever()
 
-# تشغيل خادم الويب في الخلفية
 Thread(target=run_web_server, daemon=True).start()
 
 # --- إعدادات تسجيل الأخطاء ---
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 # البيانات الخاصة بك
-API_ID = int(os.getenv("API_ID", "32636127"))
-API_HASH = os.getenv("API_HASH", "fc5ce2f719114cb68ccdc24a564e15e0")
 BOT_TOKEN = os.getenv("BOT_TOKEN", "8629100412:AAF1Nt7eBMTucCNtEwfd63NRKK3cX2i64UE")
 MUST_JOIN_CHANNEL = os.getenv("CHANNEL_USERNAME", "wanasatt")
 
-bot = Client("MediaDownloaderBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+bot = telebot.TeleBot(BOT_TOKEN)
 
 USER_LANG = {}
 TEMP_DATA = {}
@@ -88,143 +84,139 @@ def get_text(user_id, key):
     return TEXTS.get(lang, TEXTS["ar"]).get(key, "")
 
 def build_main_keyboard(user_id):
-    return InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton(get_text(user_id, "btn_lang"), callback_data="change_lang"),
-            InlineKeyboardButton(get_text(user_id, "btn_help"), callback_data="show_help")
-        ],
-        [
-            InlineKeyboardButton(get_text(user_id, "btn_channel"), url=f"https://t.me/{MUST_JOIN_CHANNEL}")
-        ]
-    ])
+    markup = InlineKeyboardMarkup()
+    markup.row(
+        InlineKeyboardButton(get_text(user_id, "btn_lang"), callback_data="change_lang"),
+        InlineKeyboardButton(get_text(user_id, "btn_help"), callback_data="show_help")
+    )
+    markup.row(InlineKeyboardButton(get_text(user_id, "btn_channel"), url=f"https://t.me/{MUST_JOIN_CHANNEL}"))
+    return markup
 
 def build_lang_keyboard():
-    buttons = []
+    markup = InlineKeyboardMarkup()
     keys = list(TEXTS.keys())
     for i in range(0, len(keys), 2):
-        row = []
         k1 = keys[i]
-        row.append(InlineKeyboardButton(f"{TEXTS[k1]['flag']} {TEXTS[k1]['name']}", callback_data=f"setlang_{k1}"))
+        btn1 = InlineKeyboardButton(f"{TEXTS[k1]['flag']} {TEXTS[k1]['name']}", callback_data=f"setlang_{k1}")
         if i + 1 < len(keys):
             k2 = keys[i+1]
-            row.append(InlineKeyboardButton(f"{TEXTS[k2]['flag']} {TEXTS[k2]['name']}", callback_data=f"setlang_{k2}"))
-        buttons.append(row)
-    return InlineKeyboardMarkup(buttons)
+            btn2 = InlineKeyboardButton(f"{TEXTS[k2]['flag']} {TEXTS[k2]['name']}", callback_data=f"setlang_{k2}")
+            markup.row(btn1, btn2)
+        else:
+            markup.row(btn1)
+    return markup
 
-async def check_subscription(client: Client, user_id: int):
+def check_subscription(user_id):
     if not MUST_JOIN_CHANNEL:
         return True
     try:
-        member = await client.get_chat_member(f"@{MUST_JOIN_CHANNEL}", user_id)
+        member = bot.get_chat_member(f"@{MUST_JOIN_CHANNEL}", user_id)
         return member.status in ["owner", "administrator", "member"]
     except Exception:
         return True
 
-@bot.on_message(filters.command("start") & filters.private)
-async def start_cmd(client: Client, message: Message):
+@bot.message_handler(commands=['start'])
+def start_cmd(message):
     user_id = message.from_user.id
-    if not await check_subscription(client, user_id):
-        kb = InlineKeyboardMarkup([
-            [InlineKeyboardButton(get_text(user_id, "sub_btn"), url=f"https://t.me/{MUST_JOIN_CHANNEL}")],
-            [InlineKeyboardButton(get_text(user_id, "verify_btn"), callback_data="check_sub")]
-        ])
-        await message.reply_text(get_text(user_id, "sub_required").format(channel=MUST_JOIN_CHANNEL), reply_markup=kb)
+    if not check_subscription(user_id):
+        markup = InlineKeyboardMarkup()
+        markup.row(InlineKeyboardButton(get_text(user_id, "sub_btn"), url=f"https://t.me/{MUST_JOIN_CHANNEL}"))
+        markup.row(InlineKeyboardButton(get_text(user_id, "verify_btn"), callback_data="check_sub"))
+        bot.reply_to(message, get_text(user_id, "sub_required").format(channel=MUST_JOIN_CHANNEL), reply_markup=markup, parse_mode="Markdown")
         return
 
-    await message.reply_text(get_text(user_id, "welcome"), reply_markup=build_main_keyboard(user_id))
+    bot.reply_to(message, get_text(user_id, "welcome"), reply_markup=build_main_keyboard(user_id), parse_mode="Markdown")
 
-@bot.on_callback_query(filters.regex("^change_lang$"))
-async def change_lang_cb(client: Client, callback: CallbackQuery):
-    user_id = callback.from_user.id
-    await callback.message.edit_text(get_text(user_id, "lang_select"), reply_markup=build_lang_keyboard())
+@bot.callback_query_handler(func=lambda call: call.data == "change_lang")
+def change_lang_cb(call):
+    user_id = call.from_user.id
+    bot.edit_message_text(get_text(user_id, "lang_select"), call.message.chat.id, call.message.message_id, reply_markup=build_lang_keyboard(), parse_mode="Markdown")
 
-@bot.on_callback_query(filters.regex("^setlang_"))
-async def set_lang_cb(client: Client, callback: CallbackQuery):
-    lang_code = callback.data.split("_")[1]
-    user_id = callback.from_user.id
+@bot.callback_query_handler(func=lambda call: call.data.startswith("setlang_"))
+def set_lang_cb(call):
+    lang_code = call.data.split("_")[1]
+    user_id = call.from_user.id
     USER_LANG[user_id] = lang_code
-    await callback.answer("✅ Updated")
-    await callback.message.edit_text(get_text(user_id, "welcome"), reply_markup=build_main_keyboard(user_id))
+    bot.answer_callback_query(call.id, "✅ Updated")
+    bot.edit_message_text(get_text(user_id, "welcome"), call.message.chat.id, call.message.message_id, reply_markup=build_main_keyboard(user_id), parse_mode="Markdown")
 
-@bot.on_callback_query(filters.regex("^show_help$"))
-async def show_help_cb(client: Client, callback: CallbackQuery):
-    user_id = callback.from_user.id
-    await callback.answer(get_text(user_id, "help_msg"), show_alert=True)
+@bot.callback_query_handler(func=lambda call: call.data == "show_help")
+def show_help_cb(call):
+    user_id = call.from_user.id
+    bot.answer_callback_query(call.id, get_text(user_id, "help_msg"), show_alert=True)
 
-@bot.on_callback_query(filters.regex("^check_sub$"))
-async def check_sub_cb(client: Client, callback: CallbackQuery):
-    user_id = callback.from_user.id
-    if await check_subscription(client, user_id):
-        await callback.answer(get_text(user_id, "sub_success"), show_alert=True)
-        await callback.message.delete()
-        await start_cmd(client, callback.message)
+@bot.callback_query_handler(func=lambda call: call.data == "check_sub")
+def check_sub_cb(call):
+    user_id = call.from_user.id
+    if check_subscription(user_id):
+        bot.answer_callback_query(call.id, get_text(user_id, "sub_success"), show_alert=True)
+        bot.delete_message(call.message.chat.id, call.message.message_id)
+        start_cmd(call.message)
     else:
-        await callback.answer(get_text(user_id, "not_subbed"), show_alert=True)
+        bot.answer_callback_query(call.id, get_text(user_id, "not_subbed"), show_alert=True)
 
-@bot.on_message(filters.private & filters.text & ~filters.command(["start"]))
-async def handle_url(client: Client, message: Message):
+@bot.message_handler(func=lambda message: True)
+def handle_url(message):
     user_id = message.from_user.id
-    if not await check_subscription(client, user_id):
-        kb = InlineKeyboardMarkup([
-            [InlineKeyboardButton(get_text(user_id, "sub_btn"), url=f"https://t.me/{MUST_JOIN_CHANNEL}")],
-            [InlineKeyboardButton(get_text(user_id, "verify_btn"), callback_data="check_sub")]
-        ])
-        await message.reply_text(get_text(user_id, "sub_required").format(channel=MUST_JOIN_CHANNEL), reply_markup=kb)
+    if not check_subscription(user_id):
+        markup = InlineKeyboardMarkup()
+        markup.row(InlineKeyboardButton(get_text(user_id, "sub_btn"), url=f"https://t.me/{MUST_JOIN_CHANNEL}"))
+        markup.row(InlineKeyboardButton(get_text(user_id, "verify_btn"), callback_data="check_sub"))
+        bot.reply_to(message, get_text(user_id, "sub_required").format(channel=MUST_JOIN_CHANNEL), reply_markup=markup, parse_mode="Markdown")
         return
 
     url = message.text.strip()
     if not re.match(r'https?://[^\s]+', url):
         return
 
-    msg = await message.reply_text(get_text(user_id, "processing"))
+    msg = bot.reply_to(message, get_text(user_id, "processing"), parse_mode="Markdown")
 
     ydl_opts = {'quiet': True, 'nocheckcertificate': True}
     if os.path.exists(COOKIE_PATH):
         ydl_opts['cookiefile'] = COOKIE_PATH
 
-    loop = asyncio.get_running_loop()
     try:
-        def fetch_info():
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                return ydl.extract_info(url, download=False)
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
 
-        info = await loop.run_in_executor(None, fetch_info)
         title = info.get('title', 'Video')
         duration = info.get('duration', 0)
 
         TEMP_DATA[user_id] = url
 
-        kb = InlineKeyboardMarkup([
-            [InlineKeyboardButton(get_text(user_id, "btn_best"), callback_data="dl_best")],
-            [
-                InlineKeyboardButton(get_text(user_id, "btn_720"), callback_data="dl_720"),
-                InlineKeyboardButton(get_text(user_id, "btn_480"), callback_data="dl_480")
-            ],
-            [InlineKeyboardButton(get_text(user_id, "btn_audio"), callback_data="dl_audio")]
-        ])
+        markup = InlineKeyboardMarkup()
+        markup.row(InlineKeyboardButton(get_text(user_id, "btn_best"), callback_data="dl_best"))
+        markup.row(
+            InlineKeyboardButton(get_text(user_id, "btn_720"), callback_data="dl_720"),
+            InlineKeyboardButton(get_text(user_id, "btn_480"), callback_data="dl_480")
+        )
+        markup.row(InlineKeyboardButton(get_text(user_id, "btn_audio"), callback_data="dl_audio"))
 
-        await msg.edit_text(
+        bot.edit_message_text(
             get_text(user_id, "choose_format").format(title=title, duration=duration),
-            reply_markup=kb
+            chat_id=msg.chat.id,
+            message_id=msg.message_id,
+            reply_markup=markup,
+            parse_mode="Markdown"
         )
 
     except Exception as e:
         logging.error(f"Fetch Error: {e}")
-        await msg.edit_text(get_text(user_id, "error").format(error=str(e)[:120]))
+        bot.edit_message_text(get_text(user_id, "error").format(error=str(e)[:120]), chat_id=msg.chat.id, message_id=msg.message_id, parse_mode="Markdown")
 
-@bot.on_callback_query(filters.regex("^dl_"))
-async def process_dl(client: Client, callback: CallbackQuery):
-    user_id = callback.from_user.id
+@bot.callback_query_handler(func=lambda call: call.data.startswith("dl_"))
+def process_dl(call):
+    user_id = call.from_user.id
     url = TEMP_DATA.get(user_id)
 
     if not url:
-        await callback.answer("⚠️ Session expired, please resend the link.", show_alert=True)
+        bot.answer_callback_query(call.id, "⚠️ Session expired, please resend the link.", show_alert=True)
         return
 
-    fmt = callback.data.split("_")[1]
-    await callback.message.edit_text(get_text(user_id, "downloading"))
+    fmt = call.data.split("_")[1]
+    bot.edit_message_text(get_text(user_id, "downloading"), call.message.chat.id, call.message.message_id, parse_mode="Markdown")
 
-    out_file = f"down_{user_id}_{callback.id}"
+    out_file = f"down_{user_id}_{call.id}"
     
     ydl_opts = {
         'outtmpl': f'{out_file}.%(ext)s',
@@ -245,15 +237,10 @@ async def process_dl(client: Client, callback: CallbackQuery):
     else:
         ydl_opts['format'] = 'b[ext=mp4]/best'
 
-    loop = asyncio.get_running_loop()
-
     try:
-        def do_download():
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                return ydl.extract_info(url, download=True)
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
 
-        info = await loop.run_in_executor(None, do_download)
-        
         file_path = None
         for file in os.listdir("."):
             if file.startswith(out_file):
@@ -265,16 +252,17 @@ async def process_dl(client: Client, callback: CallbackQuery):
 
         title = info.get('title', 'Downloaded Media')
 
-        if fmt == "audio":
-            await client.send_audio(chat_id=callback.message.chat.id, audio=file_path, caption=title)
-        else:
-            await client.send_video(chat_id=callback.message.chat.id, video=file_path, caption=title)
+        with open(file_path, 'rb') as f:
+            if fmt == "audio":
+                bot.send_audio(call.message.chat.id, f, caption=title)
+            else:
+                bot.send_video(call.message.chat.id, f, caption=title)
 
-        await callback.message.delete()
+        bot.delete_message(call.message.chat.id, call.message.message_id)
 
     except Exception as e:
         logging.error(f"DL Error: {e}")
-        await callback.message.edit_text(get_text(user_id, "error").format(error=str(e)[:150]))
+        bot.edit_message_text(get_text(user_id, "error").format(error=str(e)[:150]), call.message.chat.id, call.message.message_id, parse_mode="Markdown")
 
     finally:
         for file in os.listdir("."):
@@ -284,10 +272,6 @@ async def process_dl(client: Client, callback: CallbackQuery):
                 except Exception:
                     pass
 
-async def main():
-    await bot.start()
-    logging.info("Bot started successfully!")
-    await asyncio.Event().wait()
-
 if __name__ == "__main__":
-    asyncio.run(main())
+    logging.info("Starting bot with Telebot...")
+    bot.infinity_polling(timeout=10, long_polling_timeout=5)
