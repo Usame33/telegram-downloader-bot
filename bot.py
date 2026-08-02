@@ -1,13 +1,13 @@
 import os
 import re
 import logging
-import requests
 from threading import Thread
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
+import yt_dlp
 
-# --- سيرفر وهمي لمنع إغلاق Render ---
+# --- سيرفر وهمي لإبقاء Render حياً ---
 class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
@@ -21,15 +21,16 @@ def run_web_server():
 
 Thread(target=run_web_server, daemon=True).start()
 
-# --- إعدادات البوت ---
+# --- الإعدادات الرئيسية ---
 logging.basicConfig(level=logging.INFO)
 BOT_TOKEN = os.getenv("BOT_TOKEN", "8629100412:AAF1Nt7eBMTucCNtEwfd63NRKK3cX2i64UE")
 MUST_JOIN_CHANNEL = os.getenv("CHANNEL_USERNAME", "wanasatt")
 
 bot = telebot.TeleBot(BOT_TOKEN)
 USER_TEMP = {}
+COOKIE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cookies.txt")
 
-# --- لوحة الأزرار الرئيسية في الأسفل ---
+# --- لوحة الأزرار الشفافة السفلية ---
 def main_reply_keyboard():
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add(
@@ -88,21 +89,20 @@ def verify_callback(call):
     else:
         bot.answer_callback_query(call.id, "❌ لم تشترك في القناة بعد!", show_alert=True)
 
-# --- معالجة الروابط عبر API خارجي سريح وفعال (Cobalt API) ---
 @bot.message_handler(func=lambda message: True)
 def handle_messages(message):
     user_id = message.from_user.id
     text = message.text.strip()
 
-    # الاستجابة لأزرار القائمة
+    # استجابة أزرار القائمة السفلية
     if text in ["اليوتيوب", "الانستغرام", "الفيسبوك", "التيك توك", "لايكي", "سناب شات", "تويتر", "بنترست"]:
         bot.reply_to(message, f"📌 **أرسل الآن رابط من منصة ({text}) للتحميل المباشر.**", parse_mode="Markdown")
         return
     elif text == "📊 إحصائياتي":
-        bot.reply_to(message, "📊 **إحصائيات استخدامك:**\n• عدد التحميلات: 12", parse_mode="Markdown")
+        bot.reply_to(message, "📊 **إحصائيات استخدامك:**\n• عدد التحميلات: 1", parse_mode="Markdown")
         return
     elif text == "➕ أضف البوت لمجموعتك":
-        bot.reply_to(message, f"🔗 يمكنك إضافة البوت لمجموعتك عبر الرابط التالي:\nhttps://t.me/{bot.get_me().username}?startgroup=true")
+        bot.reply_to(message, f"🔗 **رابط إضافة البوت للمجموعات:**\nhttps://t.me/{bot.get_me().username}?startgroup=true", parse_mode="Markdown")
         return
 
     # دعم التحميل داخل المجموعات بالأمر /d
@@ -121,11 +121,10 @@ def handle_messages(message):
         bot.reply_to(message, f"⚠️ يرجى الاشتراك في القناة أولاً لاستخدام البوت:\n📢 @{MUST_JOIN_CHANNEL}", reply_markup=inline_kb)
         return
 
-    status_msg = bot.reply_to(message, "🔍 **جاري فحص الرابط وجلب البيانات...**", parse_mode="Markdown")
-    
+    status_msg = bot.reply_to(message, "🔍 **جاري قراءة البيانات والرابط...**", parse_mode="Markdown")
     USER_TEMP[user_id] = text
 
-    # أزرار التحميل المباشرة مثل الصورة تماماً
+    # إنشاء الأزرار التفاعلية المباشرة
     inline_kb = InlineKeyboardMarkup(row_width=2)
     inline_kb.add(
         InlineKeyboardButton("مقطع صوتي", callback_data="dl_voice"),
@@ -134,7 +133,7 @@ def handle_messages(message):
     inline_kb.add(InlineKeyboardButton("مقطع فيديو", callback_data="dl_video"))
 
     bot.edit_message_text(
-        "🎬 **جاهز للتحميل! اختر الصيغة المطلوبة:**",
+        "🎬 **اختر نوع التحميل المطلوب:**",
         chat_id=status_msg.chat.id,
         message_id=status_msg.message_id,
         reply_markup=inline_kb,
@@ -142,58 +141,75 @@ def handle_messages(message):
     )
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("dl_"))
-def process_cobalt_download(call):
+def process_ytdlp_download(call):
     user_id = call.from_user.id
     url = USER_TEMP.get(user_id)
 
     if not url:
-        bot.answer_callback_query(call.id, "⚠️ انتهت الجلسة، أرسل الرابط مجدداً.", show_alert=True)
+        bot.answer_callback_query(call.id, "⚠️ انتهت الجلسة، يرجى إعادة إرسال الرابط.", show_alert=True)
         return
 
     action = call.data.split("_")[1]
-    bot.edit_message_text("📥 **جاري سحب الملف وإرساله...**", call.message.chat.id, call.message.message_id, parse_mode="Markdown")
+    bot.edit_message_text("📥 **جاري تنزيل الملف وإرساله...**", call.message.chat.id, call.message.message_id, parse_mode="Markdown")
 
-    # استخدام API مجاني وسريع للتحميل المباشر
-    cobalt_api = "https://api.cobalt.tools/api/json"
-    headers = {
-        "Accept": "application/json",
-        "Content-Type": "application/json"
+    out_file = f"media_{user_id}_{call.id}"
+
+    # إعدادات yt-dlp المعززة لفك قيود يوتيوب و Render
+    ydl_opts = {
+        'outtmpl': f'{out_file}.%(ext)s',
+        'quiet': True,
+        'no_warnings': True,
+        'nocheckcertificate': True,
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'ios', 'web']
+            }
+        }
     }
-    
-    payload = {
-        "url": url,
-        "isAudioOnly": True if action in ["audio", "voice"] else False,
-        "aFormat": "mp3"
-    }
+
+    if os.path.exists(COOKIE_PATH):
+        ydl_opts['cookiefile'] = COOKIE_PATH
+
+    if action in ["voice", "audio"]:
+        ydl_opts['format'] = 'ba/bestaudio/best'
+    else:
+        ydl_opts['format'] = 'b/best'
 
     try:
-        response = requests.post(cobalt_api, json=payload, headers=headers, timeout=15)
-        data = response.json()
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
 
-        file_url = data.get("url")
-        if not file_url:
-            raise Exception("لم نتمكن من جلب رابط التنزيل المباشر.")
+        downloaded_path = None
+        for file in os.listdir("."):
+            if file.startswith(out_file):
+                downloaded_path = file
+                break
 
-        # تنزيل الملف مؤقتاً لإرساله تلجرام
-        file_data = requests.get(file_url, stream=True).content
-        temp_filename = f"file_{user_id}.mp3" if action in ["audio", "voice"] else f"file_{user_id}.mp4"
+        if not downloaded_path or not os.path.exists(downloaded_path):
+            raise Exception("تعذر العثور على الملف بعد التنزيل.")
 
-        with open(temp_filename, "wb") as f:
-            f.write(file_data)
+        title = info.get('title', 'تم التنزيل بنجاح')
 
-        with open(temp_filename, "rb") as f:
+        with open(downloaded_path, 'rb') as f:
             if action == "voice":
-                bot.send_voice(call.message.chat.id, f)
+                bot.send_voice(call.message.chat.id, f, caption=title)
             elif action == "audio":
-                bot.send_audio(call.message.chat.id, f)
+                bot.send_audio(call.message.chat.id, f, caption=title)
             else:
-                bot.send_video(call.message.chat.id, f)
+                bot.send_video(call.message.chat.id, f, caption=title)
 
         bot.delete_message(call.message.chat.id, call.message.message_id)
-        os.remove(temp_filename)
 
     except Exception as e:
-        bot.edit_message_text(f"❌ **حدث خطأ أثناء التحميل:**\n`{str(e)[:100]}`", call.message.chat.id, call.message.message_id, parse_mode="Markdown")
+        bot.edit_message_text(f"❌ **حدث خطأ أثناء التنزيل:**\n`{str(e)[:120]}`", call.message.chat.id, call.message.message_id, parse_mode="Markdown")
+
+    finally:
+        for file in os.listdir("."):
+            if file.startswith(out_file):
+                try:
+                    os.remove(file)
+                except Exception:
+                    pass
 
 if __name__ == "__main__":
     bot.infinity_polling(timeout=10, long_polling_timeout=5)
