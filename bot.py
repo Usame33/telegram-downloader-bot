@@ -6,13 +6,14 @@ from threading import Thread
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
+import yt_dlp
 
-# --- سيرفر وهمي لإبقاء Render حياً ---
+# --- سيرفر وهمي لضمان استمرار عمل Render ---
 class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
         self.end_headers()
-        self.wfile.write(b"Bot is alive!")
+        self.wfile.write(b"Media Downloader Bot Status: OK")
 
 def run_web_server():
     port = int(os.environ.get("PORT", 8080))
@@ -21,7 +22,7 @@ def run_web_server():
 
 Thread(target=run_web_server, daemon=True).start()
 
-# --- إعدادات البوت ---
+# --- الإعدادات وتأمين البيانات ---
 logging.basicConfig(level=logging.INFO)
 BOT_TOKEN = os.getenv("BOT_TOKEN", "8629100412:AAF1Nt7eBMTucCNtEwfd63NRKK3cX2i64UE")
 MUST_JOIN_CHANNEL = os.getenv("CHANNEL_USERNAME", "wanasatt")
@@ -29,21 +30,25 @@ MUST_JOIN_CHANNEL = os.getenv("CHANNEL_USERNAME", "wanasatt")
 bot = telebot.TeleBot(BOT_TOKEN)
 USER_TEMP = {}
 
-# --- لوحة الأزرار الشفافة السفلية بتصميم جديد ---
+# --- لوحة الأزرار الشفافة التفاعلية (تصميم جديد ومبتكر) ---
 def main_reply_keyboard():
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add(
-        KeyboardButton("🔴 يوتيوب - YouTube"),
-        KeyboardButton("📸 إنستغرام - Instagram"), KeyboardButton("🔵 فيسبوك - Facebook"),
-        KeyboardButton("🎵 تيك توك - TikTok"), KeyboardButton("💎 لايكي - Likee"),
-        KeyboardButton("👻 سناب شات - Snapchat"), KeyboardButton("🐦 تويتر - Twitter/X"),
-        KeyboardButton("📌 بنترست - Pinterest"),
-        KeyboardButton("📈 إحصائياتي"),
-        KeyboardButton("🚀 إضافة البوت لمجموعتك")
+        KeyboardButton("🔻 يوتيوب • YouTube"),
+        KeyboardButton("📸 إنستغرام • Instagram"),
+        KeyboardButton("🔹 فيسبوك • Facebook"),
+        KeyboardButton("🎵 تيك توك • TikTok"),
+        KeyboardButton("👻 سناب شات • Snapchat"),
+        KeyboardButton("🐦 تويتر • Twitter/X"),
+        KeyboardButton("📍 بنترست • Pinterest"),
+        KeyboardButton("💎 لايكي • Likee")
+    )
+    markup.add(
+        KeyboardButton("📊 إحصائياتي والسرعة"),
+        KeyboardButton("🔗 إضافة للمجموعات")
     )
     return markup
 
-# --- التحقق من الاشتراك الإجباري ---
 def check_sub(user_id):
     if not MUST_JOIN_CHANNEL:
         return True
@@ -53,10 +58,30 @@ def check_sub(user_id):
     except Exception:
         return True
 
-def extract_youtube_id(url):
-    pattern = r'(?:v=|\/|youtu\.be\/)([0-9A-Za-z_-]{11})'
-    match = re.search(pattern, url)
-    return match.group(1) if match else None
+def is_youtube_url(url):
+    return 'youtube.com' in url or 'youtu.be' in url
+
+def download_youtube_via_api(url, is_audio=False):
+    api_endpoint = "https://api.cobalt.tools/api/json"
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "User-Agent": "Mozilla/5.0"
+    }
+    payload = {
+        "url": url,
+        "isAudioOnly": is_audio,
+        "aBitrate": "128"
+    }
+    try:
+        response = requests.post(api_endpoint, json=payload, headers=headers, timeout=15)
+        if response.status_code == 200:
+            data = response.json()
+            if data.get("status") in ["stream", "redirect"]:
+                return data.get("url")
+    except Exception:
+        pass
+    return None
 
 @bot.message_handler(commands=['start'])
 def start_cmd(message):
@@ -65,32 +90,38 @@ def start_cmd(message):
 
     if not check_sub(user_id):
         inline_kb = InlineKeyboardMarkup()
-        inline_kb.add(InlineKeyboardButton("📢 انضمام للقناة الرسمية", url=f"https://t.me/{MUST_JOIN_CHANNEL}"))
-        inline_kb.add(InlineKeyboardButton("✨ تأكيد الاشتراك الأن", callback_data="verify_sub"))
-        bot.reply_to(message, f"🔒 **أهلاً بك يا {name}!**\n\nتفضل بالانضمام إلى قناتنا أولاً لتفعيل واستخدام خدمات البوت التلقائية:\n\n👉 @{MUST_JOIN_CHANNEL}", reply_markup=inline_kb, parse_mode="Markdown")
+        inline_kb.add(InlineKeyboardButton("📢 الانضمام للقناة الرسمية", url=f"https://t.me/{MUST_JOIN_CHANNEL}"))
+        inline_kb.add(InlineKeyboardButton("⚡️ تأكيد الاشتراك الآن", callback_data="verify_sub"))
+        bot.reply_to(
+            message, 
+            f"👋 **أهلاً بك يا {name}!**\n\n"
+            "⚠️ لاستخدام خدمات التنزيل السريع، يرجى الانضمام إلى القناة أولاً لتفعيل الحساب:\n"
+            f"👉 @{MUST_JOIN_CHANNEL}", 
+            reply_markup=inline_kb, 
+            parse_mode="Markdown"
+        )
         return
 
-    msg_text = (
-        f"👑 **مرحباً بك {name} في بوت التحميل السريع!**\n"
-        "━━━━━━━━━━━━━━━━━━━\n"
-        "⚡ **كل ما عليك هو إرسال رابط المقطع المباشر!**\n\n"
-        "🌐 **المنصات المدعومة بالكامل:**\n"
-        "▫️ YouTube  ▫️ TikTok  ▫️ Instagram\n"
-        "▫️ Facebook ▫️ Twitter ▫️ Snapchat\n"
-        "━━━━━━━━━━━━━━━━━━━\n"
-        "💡 **للعمل داخل المجموعات:**\n"
-        "أرسل كلمة `/d` متبوعة بالرابط"
+    welcome_text = (
+        f"💎 **أهلاً بك {name} في محرك تحميل الوسائط!**\n"
+        "━━━━━━━ Single Media Bot ━━━━━━━\n\n"
+        "📥 **كيفية الاستخدام:**\n"
+        "أرسل **رابط الفيديو أو الصوت** مباشرة، وسأتولى معالجته وإرساله إليك فوراً.\n\n"
+        "🌐 **المنصات المدعومة:**\n"
+        "• YouTube • TikTok • Instagram\n"
+        "• Facebook • Twitter • Snapchat\n\n"
+        "👥 **للمجموعات:** أرسل `/d` متبوعة بالرابط داخل أي جروب."
     )
-    bot.send_message(message.chat.id, msg_text, reply_markup=main_reply_keyboard(), parse_mode="Markdown")
+    bot.send_message(message.chat.id, welcome_text, reply_markup=main_reply_keyboard(), parse_mode="Markdown")
 
 @bot.callback_query_handler(func=lambda call: call.data == "verify_sub")
 def verify_callback(call):
     if check_sub(call.from_user.id):
-        bot.answer_callback_query(call.id, "🎉 مرحباً بك! تم تأكيد اشتراكك بنجاح.", show_alert=True)
+        bot.answer_callback_query(call.id, "✅ تم تأكيد اشتراكك بنجاح! استمتع بالخدمة.", show_alert=True)
         bot.delete_message(call.message.chat.id, call.message.message_id)
         start_cmd(call.message)
     else:
-        bot.answer_callback_query(call.id, "❌ لم يتم العثور على اشتراكك، يرجى الانضمام أولاً!", show_alert=True)
+        bot.answer_callback_query(call.id, "❌ لم يتم العثور على اشتراكك، يرجى الضغط على رابط القناة والانضمام أولاً!", show_alert=True)
 
 @bot.message_handler(func=lambda message: True)
 def handle_messages(message):
@@ -99,13 +130,13 @@ def handle_messages(message):
 
     # التفاعل مع الأزرار الرئيسية
     if any(p in text for p in ["يوتيوب", "إنستغرام", "فيسبوك", "تيك توك", "لايكي", "سناب شات", "تويتر", "بنترست"]):
-        bot.reply_to(message, f"🔗 **أرسل الآن رابط الفيديو المطلوب تحويله أو تنزيله.**", parse_mode="Markdown")
+        bot.reply_to(message, "📌 **تفضل بإرسال الرابط المباشر للمقطع هنا:**", parse_mode="Markdown")
         return
-    elif text == "📈 إحصائياتي":
-        bot.reply_to(message, "📊 **سجل التنزيلات الخاص بك:**\n\n• إجمالي الملفات المحملة: `1`\n• حالة الخدمة: 🟢 متصل ومستقر", parse_mode="Markdown")
+    elif text == "📊 إحصائياتي والسرعة":
+        bot.reply_to(message, "⚡️ **حالة الخدمة والاتصال:**\n\n• خادم المعالجة: 🟢 متصل ومستقر\n• جودة التنزيل: ⚡️ أسرع وضع مباشر", parse_mode="Markdown")
         return
-    elif text == "🚀 إضافة البوت لمجموعتك":
-        bot.reply_to(message, f"🔮 **لإضافة البوت إلى مجموعتك ومنحه صلاحية التحميل المباشر:**\nhttps://t.me/{bot.get_me().username}?startgroup=true", parse_mode="Markdown")
+    elif text == "🔗 إضافة للمجموعات":
+        bot.reply_to(message, f"🚀 **لإضافة البوت إلى مجموعتك:**\nhttps://t.me/{bot.get_me().username}?startgroup=true", parse_mode="Markdown")
         return
 
     if message.chat.type in ['group', 'supergroup']:
@@ -118,24 +149,24 @@ def handle_messages(message):
 
     if not check_sub(user_id):
         inline_kb = InlineKeyboardMarkup()
-        inline_kb.add(InlineKeyboardButton("📢 انضمام للقناة", url=f"https://t.me/{MUST_JOIN_CHANNEL}"))
-        inline_kb.add(InlineKeyboardButton("✨ تأكيد الاشتراك الأن", callback_data="verify_sub"))
-        bot.reply_to(message, f"🔒 يرجى الاشتراك في القناة أولاً لتفعيل التنزيل:\n👉 @{MUST_JOIN_CHANNEL}", reply_markup=inline_kb)
+        inline_kb.add(InlineKeyboardButton("📢 الانضمام للقناة", url=f"https://t.me/{MUST_JOIN_CHANNEL}"))
+        inline_kb.add(InlineKeyboardButton("⚡️ تأكيد الاشتراك الآن", callback_data="verify_sub"))
+        bot.reply_to(message, f"⚠️ يرجى الاشتراك في القناة أولاً لتفعيل التحميل:\n👉 @{MUST_JOIN_CHANNEL}", reply_markup=inline_kb)
         return
 
-    status_msg = bot.reply_to(message, "⚙️ **جاري فحص الرابط وتحضير خيارات التنزيل...**", parse_mode="Markdown")
+    status_msg = bot.reply_to(message, "⏳ **جاري تحليل الرابط وتأكيد البيانات...**", parse_mode="Markdown")
     USER_TEMP[user_id] = text
 
-    # أزرار التنزيل الشفافة بتصميم عصري
+    # تصميم أزرار خيارات التنزيل الجديدة
     inline_kb = InlineKeyboardMarkup(row_width=2)
     inline_kb.add(
-        InlineKeyboardButton("🎙 بصمة صوتية", callback_data="dl_voice"),
-        InlineKeyboardButton("🎧 ملف صوتي MP3", callback_data="dl_audio")
+        InlineKeyboardButton("🎙 صوت بصمة (Voice)", callback_data="dl_voice"),
+        InlineKeyboardButton("🎧 ملف MP3 (Audio)", callback_data="dl_audio")
     )
-    inline_kb.add(InlineKeyboardButton("🎬 مقطع فيديو MP4", callback_data="dl_video"))
+    inline_kb.add(InlineKeyboardButton("🎬 فيديو MP4 (Video)", callback_data="dl_video"))
 
     bot.edit_message_text(
-        "✨ **تم التعرف على الرابط بنجاح!**\n👇 اختر الصيغة أو الشكل المطلوب للإرسال:",
+        "✨ **تم استخراج بيانات الرابط بنجاح!**\n\n👇 **اختر طريقة التنزيل أو نوع الملف المطلوب:**",
         chat_id=status_msg.chat.id,
         message_id=status_msg.message_id,
         reply_markup=inline_kb,
@@ -148,85 +179,30 @@ def process_download(call):
     url = USER_TEMP.get(user_id)
 
     if not url:
-        bot.answer_callback_query(call.id, "⚠️ انتهت مهلة الجلسة، يرجى إرسال الرابط من جديد.", show_alert=True)
+        bot.answer_callback_query(call.id, "⚠️ انتهت مهلة الجلسة، يرجى إعادة إرسال الرابط.", show_alert=True)
         return
 
     action = call.data.split("_")[1]
-    bot.edit_message_text("🚀 **جاري التنزيل والمعالجة بأعلى جودة متاحة...**", call.message.chat.id, call.message.message_id, parse_mode="Markdown")
+    is_audio = action in ["audio", "voice"]
+    bot.edit_message_text("📥 **جاري سحب الملف وإرساله... قد يستغرق ذلك بضع ثوانٍ.**", call.message.chat.id, call.message.message_id, parse_mode="Markdown")
 
-    video_id = extract_youtube_id(url)
-    download_success = False
+    out_file = f"media_{user_id}_{call.id}"
 
-    if video_id:
-        invidious_instances = [
-            "https://inv.nadeko.net",
-            "https://invidious.nerdvpn.de",
-            "https://invidious.drgns.space"
-        ]
+    try:
+        # 1. يوتيوب
+        if is_youtube_url(url):
+            dl_link = download_youtube_via_api(url, is_audio=is_audio)
+            if dl_link:
+                req = requests.get(dl_link, stream=True, timeout=60)
+                file_ext = "mp3" if is_audio else "mp4"
+                file_path = f"{out_file}.{file_ext}"
 
-        for instance in invidious_instances:
-            try:
-                api_url = f"{instance}/api/v1/videos/{video_id}"
-                res = requests.get(api_url, timeout=10)
-                if res.status_code == 200:
-                    data = res.json()
-                    title = data.get("title", "فيديو ميديا")
-                    
-                    target_url = None
-                    if action in ["audio", "voice"]:
-                        adaptive = data.get("adaptiveFormats", [])
-                        audio_streams = [f for f in adaptive if f.get("type", "").startswith("audio/")]
-                        if audio_streams:
-                            target_url = audio_streams[0].get("url")
-                    else:
-                        format_streams = data.get("formatStreams", [])
-                        if format_streams:
-                            target_url = format_streams[-1].get("url")
-
-                    if target_url:
-                        file_res = requests.get(target_url, stream=True, timeout=30)
-                        temp_file = f"temp_{user_id}.mp3" if action in ["audio", "voice"] else f"temp_{user_id}.mp4"
-                        
-                        with open(temp_file, "wb") as f:
-                            for chunk in file_res.iter_content(chunk_size=1024*1024):
-                                if chunk:
-                                    f.write(chunk)
-
-                        with open(temp_file, "rb") as f:
-                            if action == "voice":
-                                bot.send_voice(call.message.chat.id, f, caption=f"🎙 {title}")
-                            elif action == "audio":
-                                bot.send_audio(call.message.chat.id, f, caption=f"🎧 {title}")
-                            else:
-                                bot.send_video(call.message.chat.id, f, caption=f"🎬 {title}")
-
-                        os.remove(temp_file)
-                        download_success = True
-                        bot.delete_message(call.message.chat.id, call.message.message_id)
-                        break
-            except Exception:
-                continue
-
-    if not download_success:
-        try:
-            cobalt_url = "https://co.wuk.sh/api/json"
-            payload = {"url": url, "isAudioOnly": True if action in ["audio", "voice"] else False}
-            headers = {"Accept": "application/json", "Content-Type": "application/json"}
-            
-            res = requests.post(cobalt_url, json=payload, headers=headers, timeout=15)
-            data = res.json()
-            
-            file_dl_url = data.get("url")
-            if file_dl_url:
-                file_res = requests.get(file_dl_url, stream=True, timeout=30)
-                temp_file = f"temp_alt_{user_id}.mp3" if action in ["audio", "voice"] else f"temp_alt_{user_id}.mp4"
-                
-                with open(temp_file, "wb") as f:
-                    for chunk in file_res.iter_content(chunk_size=1024*1024):
+                with open(file_path, "wb") as f:
+                    for chunk in req.iter_content(chunk_size=1024*1024):
                         if chunk:
                             f.write(chunk)
 
-                with open(temp_file, "rb") as f:
+                with open(file_path, "rb") as f:
                     if action == "voice":
                         bot.send_voice(call.message.chat.id, f)
                     elif action == "audio":
@@ -234,14 +210,47 @@ def process_download(call):
                     else:
                         bot.send_video(call.message.chat.id, f)
 
-                os.remove(temp_file)
-                download_success = True
+                os.remove(file_path)
                 bot.delete_message(call.message.chat.id, call.message.message_id)
-        except Exception:
-            pass
+                return
 
-    if not download_success:
-        bot.edit_message_text("⚠️ **تعذر جلب المقطع حالياً، أعد تجربة إرسال الرابط مرة أخرى.**", call.message.chat.id, call.message.message_id, parse_mode="Markdown")
+        # 2. المنصات الأخرى (فيسبوك، إنستغرام، تيك توك)
+        ydl_opts = {
+            'outtmpl': f'{out_file}.%(ext)s',
+            'quiet': True,
+            'no_warnings': True,
+            'format': 'ba/bestaudio' if is_audio else 'b/bestvideo+bestaudio/best',
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+            }
+        }
+
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+            title = info.get('title', 'تم التحميل بنجاح')
+
+        downloaded_file = None
+        for file in os.listdir("."):
+            if file.startswith(out_file):
+                downloaded_file = file
+                break
+
+        if downloaded_file and os.path.exists(downloaded_file):
+            with open(downloaded_file, 'rb') as f:
+                if action == "voice":
+                    bot.send_voice(call.message.chat.id, f, caption=f"🎙 {title[:60]}")
+                elif action == "audio":
+                    bot.send_audio(call.message.chat.id, f, caption=f"🎧 {title[:60]}")
+                else:
+                    bot.send_video(call.message.chat.id, f, caption=f"🎬 {title[:60]}")
+
+            os.remove(downloaded_file)
+            bot.delete_message(call.message.chat.id, call.message.message_id)
+        else:
+            raise Exception("لم يتم العثور على الملف.")
+
+    except Exception:
+        bot.edit_message_text("⚠️ **تعذر جلب الملف حالياً.**\nيرجى التأكد من أن الرابط مباشر أو التجربة مجدداً بعد لحظات.", call.message.chat.id, call.message.message_id, parse_mode="Markdown")
 
 if __name__ == "__main__":
     bot.infinity_polling(timeout=10, long_polling_timeout=5)
